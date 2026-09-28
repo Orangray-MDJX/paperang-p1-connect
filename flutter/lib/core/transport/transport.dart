@@ -8,10 +8,15 @@ library;
 import 'dart:typed_data';
 
 abstract class Transport {
+  Transport({this.maxPayload = 480});
+
   String get name;
 
   /// 单次 write 建议的最大载荷（设备/通道相关，协议层用于分块）。
-  int maxPayload = 480;
+  int maxPayload;
+
+  /// 断连原因（由具体实现填写，供上层状态展示）。
+  String? lastError;
 
   void Function(Uint8List data)? onBytes;
   void Function()? onDisconnected;
