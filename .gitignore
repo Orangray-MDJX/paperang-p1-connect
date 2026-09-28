@@ -88,3 +88,8 @@ calibration.png
 
 # 模拟器验证截图（本地临时）
 flutter/.e2e/
+
+# 发布产物暂存（不入库）
+.release/
+packaging/win/output/
+packaging/win/*.spec
