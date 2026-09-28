@@ -1,6 +1,6 @@
 # Paperang P1 Connect
 
-[![CI](https://github.com/OWNER/paperang-p1-connect/actions/workflows/ci.yml/badge.svg)](../../actions)
+[![CI](https://github.com/Orangray-MDJX/paperang-p1-connect/actions/workflows/ci.yml/badge.svg)](../../actions)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](pyproject.toml)
 
