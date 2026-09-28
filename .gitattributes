@@ -1,0 +1,16 @@
+* text=auto
+*.py text
+*.md text
+*.json text
+*.toml text
+*.yml text
+*.yaml text
+*.ps1 text
+*.html text
+*.js text
+*.css text
+*.svg text
+*.png binary
+*.ico binary
+*.ttf binary
+*.woff binary

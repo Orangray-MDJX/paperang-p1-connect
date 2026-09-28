@@ -1,0 +1,62 @@
+# ===== 不可发布的本地资料（逆向素材 / 官方二进制 / 内部记录），永远不入库 =====
+.refs/
+vendor/
+.zcode/
+.zcodeignore
+ZCODE-HANDOFF-*.md
+.pytest_cache/
+
+# 个人实验日记（保留在本地，公开仓库用 docs/protocol-a5.md 与 docs/VERIFICATION.md 承载）
+docs/protocol.md
+docs/research-2026-09-27.md
+docs/acceptance-2026-09-27.md
+docs/current-status.md
+docs/quality-verification-2026-09-28.md
+
+# 涉及官方驱动文件的安装脚本（法律原因不发布）
+installer/install_official_driver.ps1
+
+# 逆向研究脚本（引用 .refs 或硬编码实验设备地址，不属于产品）
+scripts/analyze_55aa.py
+scripts/analyze_a5a5_payloads.py
+scripts/channel_scan.py
+scripts/check_bt_auth.ps1
+scripts/decompile_class.py
+scripts/extract_classic_session.py
+scripts/find_55aa.py
+scripts/find_pair.py
+scripts/get_emu.ps1
+scripts/l2cap_replay.py
+scripts/mem_dump_dex.py
+scripts/parse_btsnoop.py
+scripts/probe_17.py
+scripts/probe_a5_sensors.py
+scripts/probe_ble.py
+scripts/probe_spp.py
+scripts/replay_session.py
+scripts/replay_spp_full.py
+scripts/rfcomm_incr.py
+scripts/rfcomm_raw.py
+scripts/rfcomm_replay2.py
+scripts/rfcomm_replay3.py
+scripts/spp_a5_probe.py
+scripts/test_rfcomm_enc.py
+scripts/uncached_probe.py
+scripts/usb_replay.py
+scripts/usb_session.py
+
+# ===== 环境 / 构建产物 =====
+.venv/
+__pycache__/
+*.pyc
+*.egg-info/
+build/
+dist/
+winui/PaperangP1/bin/
+winui/PaperangP1/obj/
+
+# 本地运行产物
+*.sqlite3
+*.sqlite3-wal
+*.sqlite3-shm
+calibration.png
