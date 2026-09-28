@@ -5,7 +5,35 @@ from paperang_p1.protocol_a5 import Parser, build, bitmap_content, parse_tlv
 from paperang_p1.device_a5 import A5Device
 from paperang_p1.config import Config
 from paperang_p1.device import DeviceError
-from scripts.extract_classic_session import parse_rfcomm
+
+
+def parse_rfcomm(l2: bytes):
+    """RFCOMM 帧 -> (dlci, ftype, credit, user)。user 不含 credit/FCS。
+
+    长度字段不含可选 credit 字节与 FCS；若按长度切片前先去掉 credit，
+    会静默丢掉应用层最后一字节（A5 的帧尾 0x5A）——本测试即验证这一点。
+    """
+    if len(l2) < 4:
+        return None, None, None, None
+    addr, ctrl, lb = l2[0], l2[1], l2[2]
+    if lb & 1:
+        length, off = lb >> 1, 3
+    else:
+        length, off = (lb >> 1) | (l2[3] << 7), 4
+    dlci = addr >> 2
+    ftype = ctrl & 0xEF
+    credit = None
+    user = None
+    if ftype == 0xEF and dlci:
+        if (ctrl >> 4) & 1:
+            if len(l2) <= off:
+                raise ValueError('truncated RFCOMM credit')
+            credit = l2[off]
+            off += 1
+        if len(l2) < off + length + 1:
+            raise ValueError('truncated RFCOMM information/FCS')
+        user = bytes(l2[off:off + length])
+    return dlci, ftype, credit, user
 
 
 VERSION = bytes.fromhex('a50110000115020b0001080030312e30332e3138b4204a405a')
