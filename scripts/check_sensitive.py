@@ -40,7 +40,8 @@ PATTERNS = [
 ]
 
 SKIP_DIRS = {".git", ".venv", ".refs", "vendor", "__pycache__", "bin", "obj",
-             ".zcode", ".pytest_cache", "node_modules", ".githooks"}
+             ".zcode", ".pytest_cache", "node_modules", ".githooks",
+             ".dart_tool", ".gradle", ".pub-cache"}
 
 # 本身就需要出现这些关键词的治理文件（排除规则文本、合规说明）
 FILE_SKIP = {".gitignore", "docs/OPEN-SOURCE-CHECKLIST.md"}

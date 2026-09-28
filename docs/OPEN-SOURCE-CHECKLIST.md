@@ -42,9 +42,13 @@
 
 - [ ] `git ls-files` 全量过目一遍，确认没有多余文件。
 - [ ] `python scripts/check_sensitive.py`（全仓库）零命中。
-- [ ] `pytest -q` 全绿；CI 绿。
-- [ ] Release 不附带任何二进制（无 exe/dll/apk/驱动），只发源码 tag。
-- [ ] 版本号与 `pyproject.toml` 一致，CHANGELOG 或 Release notes 就绪。
+- [ ] `pytest -q` 与 `flutter test`（flutter/ 下）全绿；CI 绿。
+- [ ] **Release 附件只允许本项目源码构建出的产物**（Android APK、Windows
+      安装器），仍禁止附带任何厂商资产或第三方二进制库；附件必须附
+      SHA256SUMS；签名密钥材料（`*.jks`、`*.keystore`、`key.properties`）
+      **永不入库**，只存在于本地与 CI secrets。
+- [ ] 版本号与 `pyproject.toml`、`flutter/pubspec.yaml` 一致，CHANGELOG 或
+      Release notes 就绪。
 
 ## 6. 后续仓库（如 Flutter 移动端）沿用本清单
 

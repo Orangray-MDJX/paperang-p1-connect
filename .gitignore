@@ -54,6 +54,31 @@ build/
 dist/
 winui/PaperangP1/bin/
 winui/PaperangP1/obj/
+packaging/output/
+
+# Flutter / Dart
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.packages
+.pub-cache/
+.pub/
+coverage/
+*.iml
+
+# Android 构建与签名材料（密钥永不入库）
+android/local.properties
+android/.gradle/
+key.properties
+*.jks
+*.keystore
+*.apk
+*.aab
+
+# iOS（预留）
+ios/Pods/
+ios/.symlinks/
+ios/Flutter/ephemeral/
 
 # 本地运行产物
 *.sqlite3
