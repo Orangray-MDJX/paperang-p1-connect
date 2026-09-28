@@ -24,6 +24,7 @@ class MainActivity : FlutterActivity() {
     private var usb: UsbBridge? = null
     private var pendingShare: String? = null
     private var pickResult: MethodChannel.Result? = null
+    private var requestPermissionLauncher: MethodChannel.Result? = null
 
     override fun onCreate(savedInstanceState: android.os.Bundle?) {
         super.onCreate(savedInstanceState)
@@ -79,6 +80,7 @@ class MainActivity : FlutterActivity() {
         MethodChannel(messenger, "p1/intent").setMethodCallHandler { call, result ->
             when (call.method) {
                 "filesDir" -> result.success(filesDir.absolutePath)
+                "requestNotifications" -> requestNotifications(result)
                 "takeSharedImage" -> {
                     val p = pendingShare
                     pendingShare = null
@@ -104,6 +106,40 @@ class MainActivity : FlutterActivity() {
                 else -> result.notImplemented()
             }
         }
+    }
+
+    private fun requestNotifications(result: MethodChannel.Result) {
+        if (Build.VERSION.SDK_INT < 33) {
+            result.success(true)
+            return
+        }
+        if (checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS) ==
+            android.content.pm.PackageManager.PERMISSION_GRANTED
+        ) {
+            result.success(true)
+            return
+        }
+        requestPermissionLauncher = result
+        @Suppress("DEPRECATION")
+        requestPermissions(
+            arrayOf(android.Manifest.permission.POST_NOTIFICATIONS), 7102,
+        )
+    }
+
+    @Deprecated("Deprecated in Java")
+    override fun onRequestPermissionsResult(
+        requestCode: Int,
+        permissions: Array<out String>,
+        grantResults: IntArray,
+    ) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+        if (requestCode != 7102) return
+        val r = requestPermissionLauncher
+        requestPermissionLauncher = null
+        r?.success(
+            grantResults.isNotEmpty() &&
+                grantResults[0] == android.content.pm.PackageManager.PERMISSION_GRANTED,
+        )
     }
 
     @Deprecated("Deprecated in Java")

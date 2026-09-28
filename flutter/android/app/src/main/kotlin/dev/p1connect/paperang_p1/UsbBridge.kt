@@ -102,25 +102,34 @@ class UsbBridge(private val context: Context, messenger: BinaryMessenger) {
             override fun onListen(args: Any?, ev: EventChannel.EventSink?) { sink = ev }
             override fun onCancel(args: Any?) { sink = null }
         })
-        context.registerReceiver(
-            object : BroadcastReceiver() {
-                override fun onReceive(c: Context?, intent: Intent?) {
-                    if (intent?.action == ACTION_PERMISSION) {
-                        val granted = intent.getBooleanExtra(UsbManager.EXTRA_PERMISSION_GRANTED, false)
-                        val r = pendingPermission
-                        pendingPermission = null
-                        if (granted) {
-                            val vid = intent.getIntExtra("vid", -1)
-                            val pid = intent.getIntExtra("pid", -1)
-                            if (r != null) open(vid, pid, r)
-                        } else {
-                            r?.error("permission", "用户拒绝了 USB 权限", null)
-                        }
+        registerPermissionReceiver()
+    }
+
+    private fun registerPermissionReceiver() {
+        val receiver = object : BroadcastReceiver() {
+            override fun onReceive(c: Context?, intent: Intent?) {
+                if (intent?.action == ACTION_PERMISSION) {
+                    val granted =
+                        intent.getBooleanExtra(UsbManager.EXTRA_PERMISSION_GRANTED, false)
+                    val r = pendingPermission
+                    pendingPermission = null
+                    if (granted) {
+                        val vid = intent.getIntExtra("vid", -1)
+                        val pid = intent.getIntExtra("pid", -1)
+                        if (r != null) open(vid, pid, r)
+                    } else {
+                        r?.error("permission", "用户拒绝了 USB 权限", null)
                     }
                 }
-            },
-            IntentFilter(ACTION_PERMISSION),
-        )
+            }
+        }
+        val filter = IntentFilter(ACTION_PERMISSION)
+        if (Build.VERSION.SDK_INT >= 33) {
+            // API 33+ 必须显式声明非导出（系统安全要求）
+            context.registerReceiver(receiver, filter, Context.RECEIVER_NOT_EXPORTED)
+        } else {
+            context.registerReceiver(receiver, filter)
+        }
     }
 
     private fun findDevice(vid: Int, pid: Int): UsbDevice? =
@@ -215,5 +224,4 @@ class UsbBridge(private val context: Context, messenger: BinaryMessenger) {
         iface = null
         epIn = null
         epOut = null
-    }
-}
+    }}

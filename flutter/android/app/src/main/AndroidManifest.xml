@@ -73,6 +73,10 @@
         <meta-data
             android:name="flutterEmbedding"
             android:value="2" />
+        <!-- 模拟器/部分 GLES 设备上 Impeller 热恢复会停止提交首帧，回退 Skia -->
+        <meta-data
+            android:name="io.flutter.embedding.android.EnableImpeller"
+            android:value="false" />
     </application>
     <queries>
         <intent>

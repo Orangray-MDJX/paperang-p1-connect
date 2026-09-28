@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/scheduler.dart';
 
 import '../services/app_controller.dart';
+import '../services/notification_permission.dart';
 import 'dashboard_page.dart';
 import 'jobs_page.dart';
 import 'print_page.dart';
@@ -43,6 +45,23 @@ class HomePage extends StatefulWidget {
 
 class _HomePageState extends State<HomePage> {
   int _index = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    // API 33+ 通知运行时权限：前台服务状态通知需要它
+    SchedulerBinding.instance.addPostFrameCallback((_) => _askNotifications());
+  }
+
+  Future<void> _askNotifications() async {
+    final state = ScaffoldMessenger.of(context);
+    final granted = await AppNotificationPermission.request();
+    if (!granted && mounted) {
+      state.showSnackBar(
+        const SnackBar(content: Text('未授予通知权限，前台服务状态将不可见；可在系统设置中开启')),
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {

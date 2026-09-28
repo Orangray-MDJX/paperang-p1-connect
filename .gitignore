@@ -85,3 +85,6 @@ ios/Flutter/ephemeral/
 *.sqlite3-wal
 *.sqlite3-shm
 calibration.png
+
+# 模拟器验证截图（本地临时）
+flutter/.e2e/
