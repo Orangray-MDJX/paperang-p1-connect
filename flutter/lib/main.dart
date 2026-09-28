@@ -1,22 +1,27 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 
-void main() {
-  // F3/F4 将替换为完整 MD3 界面；当前占位以保持工程可构建。
-  runApp(const PaperangApp());
-}
+import 'services/app_controller.dart';
+import 'services/intent_bridge.dart';
+import 'ui/app.dart';
+import 'ui/controller_scope.dart';
 
-class PaperangApp extends StatelessWidget {
-  const PaperangApp({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Paperang P1',
-      theme: ThemeData(
-        useMaterial3: true,
-        colorSchemeSeed: const Color(0xFF252A33),
-      ),
-      home: const Scaffold(body: Center(child: Text('Paperang P1 Connect'))),
-    );
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  var dataDir = Directory.systemTemp.path; // 桌面测试/CLI 兜底
+  final filesDir = await IntentBridge.filesDir();
+  if (filesDir != null) {
+    dataDir = filesDir;
+    await Directory(dataDir).create(recursive: true);
   }
+  final controller = AppController(dataDir: dataDir);
+  await controller.start();
+  runApp(
+    ControllerScope(
+      controller: controller,
+      notifier: controller,
+      child: PaperangApp(controller: controller),
+    ),
+  );
 }

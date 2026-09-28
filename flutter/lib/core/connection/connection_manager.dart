@@ -22,7 +22,7 @@ class DeviceManager implements QueueManager {
     this.simulated = false,
   });
 
-  final AppConfig cfg;
+  AppConfig cfg;
   final TransportFactory createTransport;
 
   /// 演示模式：固定使用模拟打印机（无真机时在模拟器上完整体验）。
