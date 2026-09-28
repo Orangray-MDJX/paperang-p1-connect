@@ -22,6 +22,7 @@ class MainActivity : FlutterActivity() {
 
     private var bluetooth: BluetoothBridge? = null
     private var usb: UsbBridge? = null
+    private var mdns: MdnsBridge? = null
     private var pendingShare: String? = null
     private var pickResult: MethodChannel.Result? = null
     private var requestPermissionLauncher: MethodChannel.Result? = null
@@ -62,6 +63,7 @@ class MainActivity : FlutterActivity() {
         val messenger = flutterEngine.dartExecutor.binaryMessenger
         bluetooth = BluetoothBridge(this, messenger)
         usb = UsbBridge(this, messenger)
+        mdns = MdnsBridge(this, messenger)
 
         MethodChannel(messenger, "p1/service").setMethodCallHandler { call, result ->
             when (call.method) {
@@ -159,6 +161,7 @@ class MainActivity : FlutterActivity() {
     override fun onDestroy() {
         bluetooth?.close()
         usb?.close()
+        mdns?.unregister()
         super.onDestroy()
     }
 }

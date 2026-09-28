@@ -16,7 +16,7 @@ Future<void> main() async {
     await Directory(dataDir).create(recursive: true);
   }
   final controller = AppController(dataDir: dataDir);
-  await controller.start();
+  // 先上 UI 再初始化服务链：任何启动环节异常都不该留用户在黑屏
   runApp(
     ControllerScope(
       controller: controller,
@@ -24,4 +24,7 @@ Future<void> main() async {
       child: PaperangApp(controller: controller),
     ),
   );
+  unawaited(controller.start());
 }
+
+void unawaited(Future<void> f) {}

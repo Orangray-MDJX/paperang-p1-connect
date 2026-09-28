@@ -2,9 +2,8 @@
 library;
 
 import 'dart:async';
-import 'dart:typed_data';
 
-import 'package:meta/meta.dart';
+import 'package:flutter/foundation.dart';
 import 'package:sqflite/sqflite.dart';
 
 import '../device/printer_device.dart';
@@ -98,6 +97,9 @@ class JobQueue {
   final DatabaseFactory? _factoryOverride;
 
   late final Database db;
+
+  /// 长图预览表等附加存储共用任务库。
+  Database get database => db;
   final JobStats stats = JobStats();
   Future<void>? _worker;
   Completer<void>? _wake;

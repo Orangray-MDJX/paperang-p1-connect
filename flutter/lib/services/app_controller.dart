@@ -11,7 +11,10 @@ import '../core/connection/connection_manager.dart';
 import '../core/queue/job_queue.dart';
 import '../core/transport/simulated.dart';
 import '../core/transport/transport.dart';
+import '../core/net/long_image.dart';
+import '../net/lan_server.dart';
 import '../platform/android_transports.dart';
+import '../platform/mdns_bridge.dart';
 import '../platform/service_bridge.dart';
 import 'text_image.dart';
 
@@ -27,6 +30,8 @@ class AppController extends ChangeNotifier {
   List<JobRow> jobs = const [];
   Timer? _timer;
   String? launchError;
+  LanServer? _lan;
+  late final LongImageService longImage;
 
   bool get simulated => cfg.transportPref == 'simulated';
   String get configPath => '$dataDir${Platform.pathSeparator}config.json';
@@ -34,6 +39,9 @@ class AppController extends ChangeNotifier {
 
   Future<void> start() async {
     cfg = AppConfig.load(File(configPath));
+    debugPrint(
+      'P1DBG cfg loaded pref=${cfg.transportPref} lan=${cfg.lanEnabled}',
+    );
     mgr = DeviceManager(
       cfg,
       createTransport: _createTransport,
@@ -179,6 +187,7 @@ class AppController extends ChangeNotifier {
         next.sppAddress != cfg.sppAddress;
     cfg = next;
     mgr.cfg = next;
+    await _syncLanServer();
     if (transportChanged) {
       await mgr.disconnect();
       unawaited(_autoConnect());
@@ -196,6 +205,36 @@ class AppController extends ChangeNotifier {
     _lanRestartHint = false;
     return v;
   }
+
+  /// LAN 网关与 mDNS 随配置开关；地址/子网变化需重启（与桌面一致）。
+  Future<void> _syncLanServer() async {
+    if (cfg.lanEnabled && cfg.lanAddress.isNotEmpty) {
+      if (_lan?.isRunning != true) {
+        _lan = LanServer(cfg: cfg, mgr: mgr, jobs: queue, longImage: longImage);
+        await _lan!.start();
+      }
+      final uuid = await MdnsBridge.uuid() ?? 'p1';
+      final host = Platform.localHostname.split('.').first;
+      await MdnsBridge.register(
+        name: cfg.lanName,
+        port: cfg.ippPort,
+        txt: MdnsBridge.txt(
+          uuid: uuid,
+          product: cfg.lanName,
+          pdl: 'image/urf,image/pwg-raster,image/jpeg',
+          hostname: host,
+        ),
+      );
+    } else {
+      await MdnsBridge.unregister();
+      await _lan?.stop();
+      _lan = null;
+    }
+  }
+
+  String get lanUrl => _lan?.isRunning == true
+      ? 'http://${cfg.lanAddress}:${cfg.ippPort}/long-image'
+      : '';
 
   @override
   void dispose() {

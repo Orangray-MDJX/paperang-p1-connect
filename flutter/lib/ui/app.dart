@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 
 import '../services/app_controller.dart';
+import 'controller_scope.dart';
 import '../services/notification_permission.dart';
 import 'dashboard_page.dart';
 import 'jobs_page.dart';
@@ -50,7 +51,11 @@ class _HomePageState extends State<HomePage> {
   void initState() {
     super.initState();
     // API 33+ 通知运行时权限：前台服务状态通知需要它
-    SchedulerBinding.instance.addPostFrameCallback((_) => _askNotifications());
+    SchedulerBinding.instance.addPostFrameCallback((_) {
+      Future<void>.delayed(const Duration(seconds: 3)).then((_) {
+        if (mounted) _askNotifications();
+      });
+    });
   }
 
   Future<void> _askNotifications() async {
@@ -65,6 +70,10 @@ class _HomePageState extends State<HomePage> {
 
   @override
   Widget build(BuildContext context) {
+    final c = ControllerScope.of(context);
+    if (c.status.isEmpty) {
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    }
     final pages = [
       const DashboardPage(),
       const PrintPage(),

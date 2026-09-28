@@ -8,6 +8,7 @@ import 'dart:async';
 import '../config/config.dart';
 import '../device/device_a5.dart';
 import '../device/printer_device.dart';
+import '../net/ipp.dart' show DeviceStatusProvider;
 import '../queue/job_queue.dart';
 import '../transport/transport.dart';
 import '../util/async_lock.dart';
@@ -15,7 +16,7 @@ import '../util/async_lock.dart';
 /// 按传输名构造通道；返回 null 表示该通道当前不可用（无设备/无权限）。
 typedef TransportFactory = Transport? Function(String name);
 
-class DeviceManager implements QueueManager {
+class DeviceManager implements QueueManager, DeviceStatusProvider {
   DeviceManager(
     this.cfg, {
     required this.createTransport,
@@ -128,6 +129,7 @@ class DeviceManager implements QueueManager {
     await disconnect();
   }
 
+  @override
   Map<String, Object?> status() {
     final dev = device;
     final ready = dev?.state == A5State.ready;
