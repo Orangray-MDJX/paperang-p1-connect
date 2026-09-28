@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "paperang": {
+      "command": "<repo-path>\\.venv\\Scripts\\python.exe",
+      "args": ["-m", "paperang_p1.mcp_server"],
+      "env": {
+        "PAPERANG_API": "http://127.0.0.1:8765"
+      }
+    }
+  }
+}

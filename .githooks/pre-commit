@@ -1,0 +1,12 @@
+#!/bin/sh
+# 提交前敏感信息拦截（配合 scripts/check_sensitive.py）。
+# 启用：git config core.hooksPath .githooks
+if command -v python >/dev/null 2>&1; then
+  PY=python
+elif command -v py >/dev/null 2>&1; then
+  PY="py -3"
+else
+  echo "[pre-commit] 未找到 python，跳过敏感信息扫描"
+  exit 0
+fi
+exec $PY scripts/check_sensitive.py --staged
