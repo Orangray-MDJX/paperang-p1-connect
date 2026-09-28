@@ -29,6 +29,16 @@
 | QRCoder | MIT | 随附许可文本见 `winui/PaperangP1/Licenses/QRCoder.txt` |
 | .NET 8 / Windows App SDK | MIT / 许可见微软官方 | 仅构建运行时依赖，本项目不分发其二进制 |
 
+## Flutter Android 应用（flutter/）
+
+| 组件 | 许可 | 备注 |
+|---|---|---|
+| image | BSD-3-Clause | 图像解码/编码 |
+| shelf / shelf_io | BSD-3-Clause | LAN HTTP 服务 |
+| sqflite（含 sqflite_common_ffi，测试） | MIT | 任务队列 SQLite |
+| crypto | BSD-3-Clause | 长图 token 哈希 |
+| path / meta | BSD-3 / MIT | 工具库 |
+
 ## 可选外部程序
 
 | 程序 | 许可 | 说明 |

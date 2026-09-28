@@ -45,7 +45,26 @@ MCP 工具，外加托盘与 WinUI 3 管理界面。
 
 设备自报纸宽 57mm / 200dpi，有效打印宽度 384 点（48 字节/行）。
 
+## Android 应用（Material Design 3）
+
+`flutter/` 目录是 Android 版应用：A5 协议与持久队列的纯 Dart 移植
+（41 项测试直译桌面黄金向量）、经典蓝牙 RFCOMM 与 USB 直连、前台服务
+常驻通知、快捷设置磁贴、系统分享接收图片打印、长图流程，以及
+局域网 IPP 网关（PWG/Apple Raster/JPEG，供 iOS/Android/Windows 原生打印）。
+无真机时可用"演示模式"（模拟打印机）完整体验。Android 端暂不支持
+PDF（无 Ghostscript）。
+
+```powershell
+cd flutter
+flutter pub get
+flutter run            # 或 flutter build apk --release
+```
+
 ## 安装（Windows 10/11）
+
+下载 [Releases](../../releases) 中的 `PaperangP1-Setup-<版本>.exe`
+（管理员安装，可选登录自启与打印队列组件，自带 .NET 运行时无需另装）；
+或从源码运行：
 
 ```powershell
 git clone <repo-url>
@@ -145,6 +164,14 @@ LAN 访问控制、长图入口、渲染管线与打印质量链路。无需真�
 | [installer/README-USB.md](installer/README-USB.md) | USB 通道说明 |
 | [CONTRIBUTING.md](CONTRIBUTING.md) | 贡献指南与红线 |
 | [docs/OPEN-SOURCE-CHECKLIST.md](docs/OPEN-SOURCE-CHECKLIST.md) | 发布/提交前自查清单 |
+
+## 打包 Windows 安装器（开发者）
+
+```powershell
+powershell -ExecutionPolicy Bypass -File packaging\winuild_installer.ps1
+```
+
+产出 `packaging/win/output/PaperangP1-Setup-<版本>.exe`。
 
 ## 致谢
 
