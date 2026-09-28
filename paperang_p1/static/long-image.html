@@ -1,0 +1,19 @@
+<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>P1 长图打印</title><link rel="icon" href="/assets/logo.svg" type="image/svg+xml"><link rel="stylesheet" href="/assets/fluent.css"><style>.upload-page{max-width:650px}#image{display:block;width:100%;max-width:384px;border:1px solid var(--line);border-radius:8px;margin:12px 0}#file{display:block;max-width:100%;margin:16px 0}#message{white-space:pre-wrap}.upload-page button{margin:4px 6px 4px 0}</style>
+<div class="titlebar"><div class="titlebar-brand pywebview-drag-region"><img src="/assets/logo.svg" alt=""><strong>喵喵机 P1</strong><span>长图打印</span></div><div class="window-controls" hidden><button type="button" data-window="minimize" aria-label="最小化窗口" title="最小化">−</button><button type="button" data-window="maximize" aria-label="最大化窗口" title="最大化">□</button><button type="button" data-window="close" aria-label="关闭窗口" title="关闭">×</button></div></div><main class="upload-page"><a href="/" class="muted">← 返回打印管理</a><div class="eyebrow">Paperang P1 Connect</div><h1>长图打印</h1><p class="muted">按纸张有效宽度等比例打印，高度随图片延伸。支持单张 PNG/JPEG，最多40MB、2000万像素、约2米纸长。</p><section class="card">
+<input id="file" type="file" accept="image/png,image/jpeg"><br><label><input id="trim" type="checkbox">裁去外围白边</label><br>
+<button id="preview">生成预览</button><button id="sample">使用编号测试图（约30厘米）</button><p id="size"></p><img id="image" hidden alt="实际黑白打印预览">
+<button id="submit" disabled>确认打印一次</button><button id="cancel" disabled>取消任务</button><p id="message" role="status"></p>
+<p class="muted">打印中取消后，已接收的缓冲内容仍可能出纸；结果未知的任务不会自动重打。</p></section></main>
+<script>
+const el=id=>document.getElementById(id);let token=localStorage.getItem('p1-image-token'),timer,objectUrl,sampleFile;
+async function api(path,method='GET',body){const r=await fetch('/long-image/'+path,{method,body,headers:{'X-P1-Token':token||'','X-P1-Upload':'1'}});if(!r.ok){let e=await r.json().catch(()=>({detail:r.statusText}));throw Error(e.detail)}return r}
+async function poll(){try{let j=await(await api('job')).json();el('message').textContent='任务 '+j.id+'：'+j.state+(j.error?'\n'+j.error:'');el('cancel').disabled=['completed','unknown','failed','cancelled'].includes(j.state);if(el('cancel').disabled)clearInterval(timer)}catch(e){el('message').textContent=e.message;clearInterval(timer)}}
+function watch(){clearInterval(timer);poll();timer=setInterval(poll,2000)}
+el('file').onchange=()=>{sampleFile=null;el('submit').disabled=true};el('trim').onchange=()=>{el('submit').disabled=true};
+el('preview').onclick=async()=>{el('submit').disabled=true;el('preview').disabled=true;try{let f=sampleFile||el('file').files[0];if(!f)throw Error('请选择图片');if(f.size>40*1024*1024)throw Error('图片超过40MB');clearInterval(timer);let p=await(await api('preview?trim='+el('trim').checked,'POST',f)).json();token=p.token;localStorage.setItem('p1-image-token',token);let b=await(await api('preview.png')).blob();if(objectUrl)URL.revokeObjectURL(objectUrl);objectUrl=URL.createObjectURL(b);el('image').src=objectUrl;el('image').hidden=false;el('size').textContent='预计纸长 '+p.length_mm+' mm，384点宽；请核对首尾内容。';el('message').textContent='尚未打印。预览30分钟内有效。';el('submit').disabled=false;el('cancel').disabled=true}catch(e){el('message').textContent=e.message}finally{el('preview').disabled=false}};
+el('sample').onclick=async()=>{el('sample').disabled=true;try{sampleFile=await(await fetch('/long-image/sample.png')).blob();await el('preview').onclick()}catch(e){el('message').textContent=e.message}finally{el('sample').disabled=false}};
+el('submit').onclick=async()=>{el('submit').disabled=true;try{await api('submit','POST');watch()}catch(e){el('message').textContent=e.message+'；可重试确认，服务会防止重复提交。';el('submit').disabled=false}};
+el('cancel').onclick=async()=>{try{await api('cancel','POST');await poll()}catch(e){el('message').textContent=e.message}};
+if(token)watch();
+</script></html>

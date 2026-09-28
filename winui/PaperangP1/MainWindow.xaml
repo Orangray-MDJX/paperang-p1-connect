@@ -1,0 +1,135 @@
+<Window
+    x:Class="PaperangP1.MainWindow"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="using:PaperangP1"
+    Title="喵喵机 P1">
+    <Window.SystemBackdrop><MicaBackdrop Kind="Base" /></Window.SystemBackdrop>
+    <Grid>
+        <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="*" /></Grid.RowDefinitions>
+        <TitleBar x:Name="AppTitleBar" Title="喵喵机 P1" Subtitle="打印管理">
+            <TitleBar.IconSource>
+                <ImageIconSource>
+                    <ImageIconSource.ImageSource><SvgImageSource UriSource="ms-appx:///Assets/logo.svg" /></ImageIconSource.ImageSource>
+                </ImageIconSource>
+            </TitleBar.IconSource>
+        </TitleBar>
+        <NavigationView x:Name="AppNav" Grid.Row="1" PaneDisplayMode="Left" IsBackButtonVisible="Collapsed"
+                        IsSettingsVisible="False" SelectionChanged="AppNav_SelectionChanged" OpenPaneLength="232">
+            <NavigationView.MenuItems>
+                <NavigationViewItem Content="概览" Tag="overview" Icon="Home" />
+                <NavigationViewItem Content="打印任务" Tag="jobs" Icon="AllApps" />
+                <NavigationViewItem Content="长图打印" Tag="long" Icon="Pictures" />
+                <NavigationViewItem Content="高级设置" Tag="settings" Icon="Setting" />
+            </NavigationView.MenuItems>
+            <Grid>
+                <ScrollViewer x:Name="OverviewView" Visibility="Visible">
+                    <StackPanel Spacing="16" Margin="32,20,32,40" MaxWidth="1050" HorizontalAlignment="Stretch">
+                        <TextBlock Text="概览" Style="{StaticResource TitleTextBlockStyle}" />
+                        <TextBlock Text="查看设备状态并快速提交打印任务。" Opacity="0.72" />
+                        <InfoBar x:Name="ServiceInfo" IsOpen="False" Severity="Warning" IsClosable="False" />
+                        <Grid ColumnSpacing="16">
+                            <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+                            <Border Style="{StaticResource SettingsCardStyle}">
+                                <StackPanel Spacing="12">
+                                    <TextBlock Text="设备" Style="{StaticResource SubtitleTextBlockStyle}" />
+                                    <TextBlock x:Name="DeviceStatus" Text="正在读取状态…" Style="{StaticResource TitleTextBlockStyle}" />
+                                    <TextBlock x:Name="ConnectionText" Text="—" TextWrapping="Wrap" Opacity="0.72" />
+                                    <StackPanel Orientation="Horizontal" Spacing="16">
+                                        <StackPanel Spacing="4" Width="170"><TextBlock Text="电量" Opacity="0.72" /><TextBlock x:Name="BatteryText" Text="—" FontSize="24" FontWeight="SemiBold" /><ProgressBar x:Name="BatteryBar" Maximum="100" Value="0" /></StackPanel>
+                                        <StackPanel Spacing="4"><TextBlock Text="等待任务" Opacity="0.72" /><TextBlock x:Name="PendingText" Text="—" FontSize="24" FontWeight="SemiBold" /></StackPanel>
+                                    </StackPanel>
+                                    <Button Content="连接打印机" Click="Connect_Click" HorizontalAlignment="Left" />
+                                </StackPanel>
+                            </Border>
+                            <Border Grid.Column="1" Style="{StaticResource SettingsCardStyle}">
+                                <StackPanel Spacing="12">
+                                    <TextBlock Text="手机连接" Style="{StaticResource SubtitleTextBlockStyle}" />
+                                    <TextBlock x:Name="LanStatus" Text="正在读取局域网设置…" TextWrapping="Wrap" Opacity="0.72" />
+                                    <Image x:Name="LanQrImage" Width="170" Height="170" HorizontalAlignment="Left" Visibility="Collapsed" />
+                                    <TextBlock x:Name="LanUrl" Text="" TextWrapping="Wrap" IsTextSelectionEnabled="True" />
+                                    <Button Content="打开长图打印" Click="OpenLong_Click" HorizontalAlignment="Left" />
+                                </StackPanel>
+                            </Border>
+                        </Grid>
+                        <Border Style="{StaticResource SettingsCardStyle}">
+                            <StackPanel Spacing="12">
+                                <TextBlock Text="打印短文本" Style="{StaticResource SubtitleTextBlockStyle}" />
+                                <TextBlock Text="支持中文与换行，自动适配纸张宽度。" Opacity="0.72" />
+                                <TextBox x:Name="PrintText" AcceptsReturn="True" TextWrapping="Wrap" Height="108" PlaceholderText="输入要打印的文字" />
+                                <Button x:Name="PrintButton" Content="加入打印队列" Click="PrintText_Click" HorizontalAlignment="Left" Style="{StaticResource AccentButtonStyle}" />
+                            </StackPanel>
+                        </Border>
+                    </StackPanel>
+                </ScrollViewer>
+                <ScrollViewer x:Name="JobsView" Visibility="Collapsed">
+                    <StackPanel Spacing="16" Margin="32,20,32,40" MaxWidth="1050">
+                        <TextBlock Text="打印任务" Style="{StaticResource TitleTextBlockStyle}" />
+                        <TextBlock Text="设备已接收表示收到打印结束应答；结果未知的任务不会自动重打。" TextWrapping="Wrap" Opacity="0.72" />
+                        <InfoBar x:Name="JobsInfo" IsOpen="False" IsClosable="False" />
+                        <ListView x:Name="JobsList" SelectionMode="None" HorizontalContentAlignment="Stretch">
+                            <ListView.ItemTemplate>
+                                <DataTemplate x:DataType="local:JobRow">
+                                    <Grid ColumnSpacing="16" Padding="12,10">
+                                        <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="180" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                                        <StackPanel Spacing="4"><TextBlock Text="{x:Bind DisplayTitle}" TextWrapping="WrapWholeWords" FontWeight="SemiBold" /><TextBlock Text="{x:Bind Detail}" TextWrapping="Wrap" Opacity="0.72" /></StackPanel>
+                                        <StackPanel Grid.Column="1" Spacing="4"><TextBlock Text="{x:Bind StateLabel}" /><TextBlock Text="{x:Bind Progress}" Opacity="0.72" /></StackPanel>
+                                        <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+                                            <Button Content="恢复" Tag="{x:Bind Id}" Visibility="{x:Bind ResumeVisibility}" Click="ResumeJob_Click" />
+                                            <Button Content="取消" Tag="{x:Bind Id}" Visibility="{x:Bind CancelVisibility}" Click="CancelJob_Click" />
+                                        </StackPanel>
+                                    </Grid>
+                                </DataTemplate>
+                            </ListView.ItemTemplate>
+                        </ListView>
+                    </StackPanel>
+                </ScrollViewer>
+                <ScrollViewer x:Name="LongView" Visibility="Collapsed">
+                    <StackPanel Spacing="16" Margin="32,20,32,40" MaxWidth="850">
+                        <TextBlock Text="长图打印" Style="{StaticResource TitleTextBlockStyle}" />
+                        <TextBlock Text="选择单张 PNG 或 JPEG，先检查黑白预览，再确认打印一次。" Opacity="0.72" TextWrapping="Wrap" />
+                        <InfoBar x:Name="LongInfo" IsOpen="False" IsClosable="False" />
+                        <Border Style="{StaticResource SettingsCardStyle}">
+                            <StackPanel Spacing="12">
+                                <StackPanel Orientation="Horizontal" Spacing="10"><Button Content="选择图片" Click="ChooseImage_Click" /><TextBlock x:Name="SelectedImageText" Text="尚未选择图片" VerticalAlignment="Center" /></StackPanel>
+                                <CheckBox x:Name="TrimCheck" Content="裁去外围白边" Click="TrimChanged_Click" />
+                                <Button x:Name="PreviewButton" Content="生成预览" Click="Preview_Click" IsEnabled="False" HorizontalAlignment="Left" />
+                                <TextBlock x:Name="PreviewSizeText" Text="" />
+                                <Image x:Name="LongPreviewImage" MaxWidth="384" MaxHeight="550" HorizontalAlignment="Left" Visibility="Collapsed" />
+                                <StackPanel Orientation="Horizontal" Spacing="10"><Button x:Name="SubmitLongButton" Content="确认打印一次" Style="{StaticResource AccentButtonStyle}" Click="SubmitLong_Click" IsEnabled="False" /><Button x:Name="CancelLongButton" Content="取消任务" Click="CancelLong_Click" IsEnabled="False" /></StackPanel>
+                            </StackPanel>
+                        </Border>
+                    </StackPanel>
+                </ScrollViewer>
+                <ScrollViewer x:Name="SettingsView" Visibility="Collapsed">
+                    <StackPanel Spacing="16" Margin="32,20,32,40" MaxWidth="850">
+                        <TextBlock Text="高级设置" Style="{StaticResource TitleTextBlockStyle}" />
+                        <TextBlock Text="设置由本机打印服务保存；网络设置需重启服务后生效。" Opacity="0.72" />
+                        <InfoBar x:Name="SettingsInfo" IsOpen="False" IsClosable="False" />
+                        <Border Style="{StaticResource SettingsCardStyle}">
+                            <StackPanel Spacing="14">
+                                <TextBlock Text="设备与打印" Style="{StaticResource SubtitleTextBlockStyle}" />
+                                <ToggleSwitch x:Name="KeepaliveToggle" Header="保持设备在线" OnContent="已开启" OffContent="已关闭" />
+                                <ToggleSwitch x:Name="PowerOffToggle" Header="关闭设备自动关机" OnContent="已开启" OffContent="已关闭" />
+                                <ToggleSwitch x:Name="LongMediaToggle" Header="实验性长纸张协商" OnContent="已开启" OffContent="已关闭" />
+                                <ComboBox x:Name="TransportCombo" Header="连接优先级" MinWidth="260"><ComboBoxItem Content="USB" Tag="usb" /><ComboBoxItem Content="自动（USB 优先）" Tag="auto" /><ComboBoxItem Content="蓝牙" Tag="spp" /><ComboBoxItem Content="官方驱动" Tag="vendor" /><ComboBoxItem Content="BLE（实验性）" Tag="ble" /></ComboBox>
+                                <NumberBox x:Name="DensityNumber" Header="打印浓度" Minimum="0" Maximum="100" SpinButtonPlacementMode="Compact" Width="210" HorizontalAlignment="Left" />
+                            </StackPanel>
+                        </Border>
+                        <Border Style="{StaticResource SettingsCardStyle}">
+                            <StackPanel Spacing="14">
+                                <TextBlock Text="局域网打印" Style="{StaticResource SubtitleTextBlockStyle}" />
+                                <ToggleSwitch x:Name="LanToggle" Header="允许同网段手机打印" OnContent="已开启" OffContent="已关闭" />
+                                <TextBox x:Name="LanAddressBox" Header="电脑 IPv4 地址" PlaceholderText="192.168.1.20" />
+                                <TextBox x:Name="LanNetworkBox" Header="允许的网段" PlaceholderText="192.168.1.0/24" />
+                                <TextBox x:Name="LanNameBox" Header="打印机名称" PlaceholderText="Paperang P1" />
+                                <TextBlock Text="启用后还需按局域网说明配置 Windows 防火墙。" Opacity="0.72" />
+                            </StackPanel>
+                        </Border>
+                        <Button x:Name="SaveSettingsButton" Content="保存设置" Style="{StaticResource AccentButtonStyle}" Click="SaveSettings_Click" HorizontalAlignment="Left" />
+                    </StackPanel>
+                </ScrollViewer>
+            </Grid>
+        </NavigationView>
+    </Grid>
+</Window>

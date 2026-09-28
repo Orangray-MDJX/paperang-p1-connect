@@ -1,0 +1,119 @@
+<!doctype html>
+<html lang="zh-CN">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>喵喵机 P1</title>
+<link rel="icon" href="/assets/logo.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/assets/fluent.css">
+<div class="titlebar"><div class="titlebar-brand pywebview-drag-region"><img src="/assets/logo.svg" alt=""><strong>喵喵机 P1</strong><span>打印管理</span></div><div class="window-controls" hidden><button type="button" data-window="minimize" aria-label="最小化窗口" title="最小化">−</button><button type="button" data-window="maximize" aria-label="最大化窗口" title="最大化">□</button><button type="button" data-window="close" aria-label="关闭窗口" title="关闭">×</button></div></div>
+<main>
+<header class="fade-in"><div class="eyebrow">Paperang P1 Connect</div><h1>打印管理</h1><p class="lead muted">Windows 打印时选择「Paperang P1 (服务)」。</p></header>
+<div class="grid fade-in">
+<section class="card" aria-label="设备状态">
+  <div class="status-head"><span id="status-dot" class="status-dot"></span><div id="status" class="status-title" role="status">正在读取状态…</div></div>
+  <p id="detail" class="muted"></p><div class="metric-row"><div class="metric"><span>电量</span><b id="battery">—</b></div><div class="metric"><span>等待任务</span><b id="pending">—</b></div><div class="metric"><span>连接方式</span><b id="transport">—</b></div></div>
+  <p id="power" class="muted"></p><div class="actions"><button id="reconnect" class="secondary" type="button">连接打印机</button></div>
+</section>
+<section class="card" id="lan-tools"><h2>手机连接与长图</h2><p id="lan" class="muted"></p><div id="qr-panel" class="qr-panel" hidden><img id="lan-qr" alt="手机长图打印入口二维码"><div><strong>扫码打开长图打印</strong><p id="lan-url" class="muted"></p><a id="lan-link" class="button secondary" href="/long-image">在应用中打开</a></div></div><p id="lan-help" class="muted">启用局域网后，同一 Wi-Fi 下的手机可扫码上传长图并确认打印。</p></section>
+</div>
+<section class="card fade-in">
+  <h2>打印短文本</h2>
+  <form id="print-form">
+    <label for="text">支持中文和换行，自动适配纸张宽度。</label>
+    <textarea id="text" required maxlength="10000" placeholder="输入要打印的文字"></textarea>
+    <button id="submit" type="submit">加入打印队列</button>
+  </form>
+  <p id="message" class="message" role="status" aria-live="polite"></p>
+</section>
+<section class="card fade-in">
+  <h2>打印任务</h2>
+  <p class="muted">「设备已接收」表示打印结束应答已收到，纸面效果请核对。结果未知的任务不会自动重打。</p>
+  <div class="table"><table>
+    <thead><tr><th>任务</th><th>状态</th><th>已确认页面</th><th>操作</th></tr></thead>
+    <tbody id="jobs"></tbody>
+  </table></div>
+</section>
+<section class="section-heading"><h2>高级操作</h2><span class="pill">本机设置</span></section>
+<section class="card"><h3>设备与打印</h3><div class="switch-row"><div><strong>保持设备在线</strong><small>定时读取电量，维持连接状态。</small></div><input id="keepalive" type="checkbox" aria-label="保持设备在线"></div><div class="switch-row"><div><strong>关闭设备自动关机</strong><small>重新连接后写入设备并读回确认。</small></div><input id="disable_auto_poweroff" type="checkbox" aria-label="关闭设备自动关机"></div><div class="switch-row"><div><strong>实验性长纸张协商</strong><small>向原生打印客户端提供更长的自定义纸张。</small></div><input id="ipp_long_media" type="checkbox" aria-label="实验性长纸张协商"></div><div class="fields"><label>连接优先级<select id="transport_pref"><option value="usb">USB</option><option value="auto">自动（USB 优先）</option><option value="spp">蓝牙</option><option value="vendor">官方驱动</option><option value="ble">BLE（实验性）</option></select></label><label>打印浓度<input id="density" type="number" min="0" max="100"></label></div></section>
+<section class="card"><h3>局域网打印</h3><div class="switch-row"><div><strong>允许同网段手机打印</strong><small>更改后需重启服务，并按局域网说明配置防火墙。</small></div><input id="lan_enabled" type="checkbox" aria-label="允许同网段手机打印"></div><div class="fields"><label>电脑 IPv4 地址<input id="lan_address" type="text" placeholder="192.168.1.20"></label><label>允许的网段<input id="lan_network" type="text" placeholder="192.168.1.0/24"></label><label>打印机名称<input id="lan_name" type="text" placeholder="Paperang P1"></label></div><p class="muted">二维码指向手机长图打印页；原生打印可在同一 Wi-Fi 下搜索打印机。网络设置需要重启后台服务才生效。</p></section>
+<div class="actions"><button id="save-config" type="button">保存高级设置</button><span id="config-message" class="message" role="status" aria-live="polite"></span></div>
+</main>
+<script>
+const el = id => document.getElementById(id);
+const transports = {usb:'USB',spp:'蓝牙',ble:'BLE',vendor:'驱动'};
+const labels = {pending:'等待打印',receiving:'接收文档中',held:'等待设备恢复',printing:'打印中',completed:'设备已接收',cancelled:'已取消',unknown:'结果未知',failed:'失败'};
+async function api(path, options) {
+  const response = await fetch('/api' + path, options);
+  const result = await response.json();
+  if (!response.ok) throw new Error(typeof result.detail === 'string' ? result.detail : JSON.stringify(result.detail || result));
+  return result;
+}
+const post = (path, body={}) => api(path,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+function cell(row, text) { const td=document.createElement('td'); td.textContent=text; row.append(td); return td; }
+let refreshing = false;
+async function refresh() {
+  if (refreshing) return;
+  refreshing = true;
+  try {
+    const [state, jobs] = await Promise.all([api('/status'),api('/jobs')]);
+    el('status').textContent = state.connected ? (state.lid_closed === false ? '请合好纸仓盖' : state.paper_present === false ? '打印机缺纸' : state.queue.printing ? '正在打印' : `${transports[state.transport]||'设备'} 已就绪`) : '等待打印机连接';
+    el('detail').textContent = state.connected ? `设备已连接${state.queue.printing ? '，任务正在发送' : ''}。` : '请按实体键唤醒打印机，并检查 USB 或蓝牙连接。未发送的任务会保留。';
+    el('battery').textContent = state.connected && state.battery != null ? `${state.battery}%` : '—';
+    el('pending').textContent = state.queue.pending;
+    el('transport').textContent = state.connected ? transports[state.transport] || '设备' : '—';
+    el('status-dot').className = 'status-dot ' + (state.connected ? (state.printable === false || state.queue.printing ? 'warning' : 'ready') : '');
+    el('power').textContent = state.power_down_time === 0 ? '设备已确认关闭自动关机；服务持续发送保活查询。' : '自动关机设置尚未确认。';
+    const lanReady = state.lan?.enabled && !state.lan.restart_required && !!state.lan.long_image_url;
+    el('lan').textContent = state.lan?.restart_required ? '网络设置已保存，请重启后台服务后使用。' : state.lan?.enabled && !state.lan.long_image_url ? '局域网打印已开启；请重启后台服务以载入扫码入口。' : lanReady ? `局域网打印已开启：${state.lan.ipp_url}` : '局域网打印未开启。';
+    el('qr-panel').hidden = !lanReady;
+    el('lan-help').hidden = lanReady;
+    if (lanReady) { if (el('lan-qr').dataset.url !== state.lan.long_image_url) { el('lan-qr').src = '/api/lan-qr'; el('lan-qr').dataset.url = state.lan.long_image_url; } el('lan-url').textContent = state.lan.long_image_url; }
+    el('jobs').replaceChildren();
+    if (!jobs.length) { const row=document.createElement('tr'); cell(row,'还没有打印任务'); el('jobs').append(row); }
+    for (const job of jobs) {
+      const row=document.createElement('tr');
+      const title=cell(row,`#${job.id} ${job.title}`);
+      if (job.state==='unknown') { const warning=document.createElement('div'); warning.className='error'; warning.textContent='可能已经部分出纸，请核对纸面；不会自动重打。'; title.append(warning); }
+      if (job.error && job.state!=='cancelled') { const note=document.createElement('div'); note.className='error'; note.textContent=job.error; title.append(note); }
+      cell(row,job.state==='printing' && job.cancel_requested ? '取消中（当前页结束后停止）' : (labels[job.state] || job.state));
+      cell(row,`${job.pages_done} / ${job.page_count}`);
+      const actions=cell(row,'');
+      for (const [action,label] of (job.state==='held' ? [['resume','恢复'],['cancel','取消']] : ['pending','receiving','printing'].includes(job.state) ? [['cancel','取消']] : [])) {
+        const button=document.createElement('button'); button.textContent=label; button.className='secondary';
+        button.disabled=action==='resume' && !state.connected;
+        button.onclick=async()=>{ button.disabled=true; try { await post(`/jobs/${job.id}/${action}`); await refresh(); } catch(error) { el('message').textContent=error.message; } finally { button.disabled=false; } };
+        actions.append(button,' ');
+      }
+      el('jobs').append(row);
+    }
+  } catch(error) { el('status').textContent='无法连接服务'; el('detail').textContent=error.message; }
+  finally { refreshing=false; }
+}
+el('reconnect').onclick=async()=>{ el('reconnect').disabled=true; try { await post('/connect',{}); await refresh(); } catch(error) { el('message').textContent=error.message; } finally { el('reconnect').disabled=false; } };
+el('print-form').onsubmit=async(event)=>{
+  event.preventDefault(); el('submit').disabled=true;
+  try { const result=await post('/print/text',{text:el('text').value}); el('message').textContent=`任务 #${result.job_id} 已加入队列。`; el('text').value=''; await refresh(); }
+  catch(error) { el('message').textContent=error.message; }
+  finally { el('submit').disabled=false; }
+};
+const configFields = ['keepalive','disable_auto_poweroff','ipp_long_media','transport_pref','density','lan_enabled','lan_address','lan_network','lan_name'];
+const checkboxes = new Set(['keepalive','disable_auto_poweroff','ipp_long_media','lan_enabled']);
+async function loadConfig() {
+  try { const config = await api('/config'); for (const key of configFields) el(key)[checkboxes.has(key) ? 'checked' : 'value'] = config[key]; }
+  catch(error) { el('config-message').textContent = `读取设置失败：${error.message}`; }
+}
+el('save-config').onclick = async()=>{
+  const button = el('save-config'); button.disabled = true;
+  try {
+    const update = {};
+    for (const key of configFields) update[key] = checkboxes.has(key) ? el(key).checked : key === 'density' ? Number(el(key).value) : el(key).value.trim();
+    const result = await api('/config',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(update)});
+    el('config-message').textContent = result.restart_required ? '设置已保存。请重启后台服务以应用网络设置。' : '设置已保存。';
+    await refresh();
+  } catch(error) { el('config-message').textContent = `保存失败：${error.message}`; }
+  finally { button.disabled = false; }
+};
+loadConfig();
+refresh(); setInterval(refresh,3000);
+</script>
+</html>
