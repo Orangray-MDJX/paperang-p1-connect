@@ -28,12 +28,28 @@ tools, plus a tray icon and a WinUI 3 management window.
 
 | Model / firmware | USB | Bluetooth | BLE |
 |---|---|---|---|
-| P1 · A5 01.03.18 | verified | verified (RFCOMM) | experimental |
+| P1 · A5 01.03.18 | verified | verified (RFCOMM) | verified (wake) |
 | Other A5 firmwares | unverified | unverified | — |
 | Legacy gen1/gen2 | supported | supported | supported |
 
 See [docs/VERIFICATION.md](docs/VERIFICATION.md) for the full verified
 capability matrix.
+
+## Android app (Material Design 3)
+
+`flutter/` is an Android port: the A5 protocol and durable queue in pure Dart
+(42 tests ported from the desktop golden vectors), RFCOMM and USB transports,
+a foreground service, a quick-settings tile, share-target image printing and
+the LAN IPP gateway.
+
+- **PDF printing** (v0.2.1): open/render via the system PdfRenderer, page
+  through and zoom the preview, print the current page or the whole document,
+  or export a page as PNG to Downloads.
+- **Bluetooth auto-connect** (v0.2.1): a deeply sleeping P1 ignores classic
+  paging, so the app knocks the radio awake with a BLE scan/GATT probe before
+  dialing RFCOMM (auto order USB → BLE → classic); verified on hardware.
+
+A "demo mode" (simulated printer) works without a device.
 
 ## Install (Windows 10/11)
 

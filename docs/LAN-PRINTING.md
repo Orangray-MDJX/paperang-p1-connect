@@ -10,7 +10,7 @@
   发现使用 Bonjour 的 _universal._sub._ipp._tcp，格式支持 Apple Raster W8。
 - Windows：本机原有 Paperang P1 (服务) 队列继续可用。
 
-IPP 支持 PWG Raster、Apple Raster（URF W8）、JPEG，以及已安装 Ghostscript 时的 PDF。
+IPP 支持 PWG Raster、Apple Raster（URF W8）、JPEG，以及 PDF（Windows 桌面端经 Ghostscript，Android 端经系统 PdfRenderer，v0.2.1 起）。
 API 与 MCP 管理仍只在 127.0.0.1:8765，局域网端口不提供配置、文件路径打印或管理页面。
 LAN 入口限制为配置的子网（示例 `192.168.1.0/24`），防火墙仅开放 TCP 8631 和 UDP 5353。
 新增单张长图入口：`http://192.168.1.100:8631/long-image`。先生成黑白预览，再确认打印，绕过手机固定页面排版。

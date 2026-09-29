@@ -39,7 +39,7 @@ MCP 工具，外加托盘与 WinUI 3 管理界面。
 
 | 机型/固件 | USB | 经典蓝牙 | BLE | 说明 |
 |---|---|---|---|---|
-| P1 · A5 01.03.18 | ✅ | ✅ | 实验 | 本项目验证基准 |
+| P1 · A5 01.03.18 | ✅ | ✅ | ✅（唤醒） | 本项目验证基准 |
 | 其他 A5 固件 | 未验证 | 未验证 | — | 命令表面可能兼容，欢迎反馈 |
 | 老款 gen1/gen2 | ✅ | ✅ | ✅ | 沿用社区既有协议 |
 
@@ -48,11 +48,15 @@ MCP 工具，外加托盘与 WinUI 3 管理界面。
 ## Android 应用（Material Design 3）
 
 `flutter/` 目录是 Android 版应用：A5 协议与持久队列的纯 Dart 移植
-（41 项测试直译桌面黄金向量）、经典蓝牙 RFCOMM 与 USB 直连、前台服务
+（42 项测试直译桌面黄金向量）、经典蓝牙 RFCOMM 与 USB 直连、前台服务
 常驻通知、快捷设置磁贴、系统分享接收图片打印、长图流程，以及
-局域网 IPP 网关（PWG/Apple Raster/JPEG，供 iOS/Android/Windows 原生打印）。
-无真机时可用"演示模式"（模拟打印机）完整体验。Android 端暂不支持
-PDF（无 Ghostscript）。
+局域网 IPP 网关（PWG/Apple Raster/JPEG/PDF，供 iOS/Android/Windows 原生打印）。
+- **PDF 打印**（v0.2.1）：系统 PdfRenderer 打开/渲染，翻页缩放预览，
+  打印当前页/全部，或把页面导出为 PNG 到下载目录。
+- **蓝牙自动连接**（v0.2.1）：深睡的 P1 不应答经典蓝牙寻呼——应用先以
+  BLE 扫描/GATT 触碰唤醒设备无线电，再建立 RFCOMM（自动顺序
+  USB → BLE → 经典蓝牙），实机验证冷启动即连。
+无真机时可用"演示模式"（模拟打印机）完整体验。
 
 ```powershell
 cd flutter
@@ -141,8 +145,11 @@ powershell -ExecutionPolicy Bypass -File installer\install_printer.ps1
 - 发送期间失联 → `unknown`，**不自动重打**；未发送 → `held`，按设备实体键
   唤醒后手动恢复。
 - 打印会话（开始→位图→结束）之间不插入状态查询，这是设备的硬约束。
-- 已关机/深度休眠的设备无法由软件唤醒；自动关机设 0 会回读确认。
-- `transport_pref=auto` 按 USB、经典蓝牙顺序连接；打印过程中不跨通道重发。
+- 完全关机的设备只能按实体键开机；但**空闲深睡**（自动关机前）的设备可由
+  软件唤醒——经典蓝牙寻呼失败时服务先以 BLE 扫描/GATT 触碰敲醒无线电再
+  重试（实机 2026-09-29 验证）。自动关机设 0 会回读确认。
+- `transport_pref=auto` 按 USB、经典蓝牙顺序连接（首败后 BLE 敲门重试一次）；
+  打印过程中不跨通道重发。Android 端自动顺序为 USB → BLE → 经典蓝牙。
 
 ## 测试
 
@@ -168,7 +175,7 @@ LAN 访问控制、长图入口、渲染管线与打印质量链路。无需真�
 ## 打包 Windows 安装器（开发者）
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File packaging\winuild_installer.ps1
+powershell -ExecutionPolicy Bypass -File packaging\win\build_installer.ps1
 ```
 
 产出 `packaging/win/output/PaperangP1-Setup-<版本>.exe`。

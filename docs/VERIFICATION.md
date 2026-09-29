@@ -41,6 +41,24 @@
 | Windows / 第三方 IPP 客户端 | Apple Raster / PWG Raster 任务收到完整结束应答 |
 | 长图网页入口（Android / iOS 上传） | 预览→确认→打印全流程，纸面确认 |
 
+## Android 应用 *（实机：P1 · A5 01.03.18，v0.2.1）*
+
+| 能力 | 结果 |
+|---|---|
+| 蓝牙自动连接（BLE 敲门 → RFCOMM） | 冷启动即连，电量/纸仓真实应答 |
+| PDF 打开/渲染/翻页/缩放预览 | 3 页文档逐页验证 |
+| PDF 打印（打印本页） | 任务 completed 1/1，每数据块 ACK |
+| PDF 页面导出 PNG 到下载目录 | MediaStore 落盘确认（integration test） |
+| 经典蓝牙直连（通道 1） | RFCOMM 会话与 A5 握手正常 |
+| 桌面端 BLE 敲门重连（服务） | 深睡设备免按键自动恢复连接 |
+
+## 桌面端（v0.2.1 修复回归）
+
+| 能力 | 证据 |
+|---|---|
+| 幽灵连接竞态（安卓桥 success 时机） | `flutter/test/connection_manager_test.dart` + 真机 logcat |
+| 桌面 BLE 敲门（`_ble_poke`） | 实机：spp 首败 → poke → 重连成功，`tests/`（68 项）全绿 |
+
 ## 服务与集成（自动化测试 + 实机）
 
 | 能力 | 证据 |
