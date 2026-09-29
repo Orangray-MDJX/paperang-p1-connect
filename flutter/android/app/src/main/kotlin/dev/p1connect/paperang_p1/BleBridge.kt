@@ -290,8 +290,14 @@ class BleBridge(private val context: Context, messenger: BinaryMessenger) {
     }
 
     private fun detectCharacteristics(g: BluetoothGatt): Boolean {
+        val all = g.services
+        Log.i(TAG, "services=${all.size}: " + all.joinToString {
+            it.uuid.toString().substring(4, 8) + "(" + it.characteristics.joinToString { c ->
+                c.uuid.toString().substring(4, 8) + ":" + c.properties
+            } + ")"
+        })
         val chars = mutableListOf<BluetoothGattCharacteristic>()
-        for (svc in g.services) {
+        for (svc in all) {
             if (svc.uuid.toString().lowercase() in SERVICE_UUIDS) {
                 chars.addAll(svc.characteristics)
             }

@@ -32,19 +32,20 @@ void main() {
     await mgr.stop();
   });
 
-  test('auto：USB 不可用时回落经典蓝牙', () async {
+  test('auto：USB 不可用时回落 BLE/经典蓝牙（BLE 优先）', () async {
     final calls = <String>[];
     final mgr = DeviceManager(
       AppConfig()..transportPref = 'auto',
       createTransport: (name) {
         calls.add(name);
-        return name == 'usb' ? null : SimulatedPrinter(name: 'spp');
+        if (name == 'usb') return null;
+        return SimulatedPrinter(name: 'ble');
       },
     );
     final d = await mgr.ensureConnected();
     expect(d, isNotNull);
-    expect(calls, ['usb', 'spp']);
-    expect(mgr.status()['transport'], 'spp');
+    expect(calls, ['usb', 'ble']);
+    expect(mgr.status()['transport'], 'ble');
     await mgr.stop();
   });
 

@@ -7,7 +7,7 @@ import 'package:paperang_p1/services/pdf_service.dart';
 
 /// 真机验证 MediaStore 保存链路（通道修复后）：
 /// 直接调用服务层，不经 UI。运行：
-///   flutter test integration_test/save_check_test.dart -d <serial>
+///   flutter test integration_test/save_check_test.dart -d [serial]
 void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
 

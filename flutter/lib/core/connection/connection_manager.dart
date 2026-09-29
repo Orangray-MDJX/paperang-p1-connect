@@ -41,7 +41,8 @@ class DeviceManager implements QueueManager, DeviceStatusProvider {
 
   List<String> get _prefs {
     if (simulated) return ['simulated'];
-    if (cfg.transportPref == 'auto') return ['usb', 'spp', 'ble'];
+    // BLE 优先于经典蓝牙：P1 的经典侧常不应答，而唤醒后的广播窗口很短。
+    if (cfg.transportPref == 'auto') return ['usb', 'ble', 'spp'];
     return [cfg.transportPref];
   }
 
