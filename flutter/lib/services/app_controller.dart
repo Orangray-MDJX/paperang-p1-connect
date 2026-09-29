@@ -148,8 +148,10 @@ class AppController extends ChangeNotifier {
     if ((cfg.sppAddress ?? '').isNotEmpty) return;
     try {
       final bonded = await RfcommTransport.listBonded();
-      debugPrint('listBonded -> ${bonded.length} devices: '
-          '${bonded.map((d) => d['name']).join(',')}');
+      debugPrint(
+        'listBonded -> ${bonded.length} devices: '
+        '${bonded.map((d) => d['name']).join(',')}',
+      );
       for (final d in bonded) {
         final name = d['name'] as String? ?? '';
         final hit = cfg.bleNamePrefixes.any(
