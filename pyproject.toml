@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "paperang-p1-connect"
-version = "0.2.0"
+version = "0.2.1"
 description = "Unofficial Paperang P1 thermal printer service for Windows: USB/Bluetooth printing, durable job queue, LAN IPP server, HTTP API and MCP"
 readme = "README.md"
 requires-python = ">=3.10"

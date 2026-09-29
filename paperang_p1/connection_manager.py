@@ -56,38 +56,73 @@ class DeviceManager:
         orders = {'auto': ['usb', 'spp'], 'usb': ['usb'], 'spp': ['spp'], 'ble': ['ble'], 'vendor': ['vendor']}
         if pref not in orders: raise DeviceError(f'未知通道偏好 {pref}')
         errors = []; self.state = 'connecting'
+        poked = False
         for name in orders[pref]:
             modes = ['a5', 'legacy'] if self.cfg.protocol_mode == 'auto' else [self.cfg.protocol_mode]
             for mode in modes:
-                dev = None
-                try:
-                    if name == 'vendor':
-                        from .vendor_bridge import VendorPrinter
-                        dev = VendorPrinter(self.cfg)
-                    else:
-                        transport = await self._transport(name)
-                        dev = A5Device(transport, self.cfg) if mode == 'a5' else PaperangDevice(transport, self.cfg)
-                    await dev.connect()
-                    # Legacy handshakes must also prove a response, not just an open handle.
-                    if mode == 'legacy' or name == 'vendor':
-                        if not await dev.get_sn(): raise DeviceError('未收到有效设备身份响应')
-                    self.device = dev
-                    self.state = 'ready'; self.last_error = None
-                    self.last_seen = time.monotonic()
-                    try: await dev.keepalive_setup()
+                # 经典通道失败后先 BLE 敲门唤醒再重试一次（深睡的 P1 只有被
+                # GATT 触碰后才会响应寻呼，实机 2026-09-29 验证）。
+                attempts = 2 if name == 'spp' else 1
+                for attempt in range(attempts):
+                    dev = None
+                    try:
+                        if name == 'vendor':
+                            from .vendor_bridge import VendorPrinter
+                            dev = VendorPrinter(self.cfg)
+                        else:
+                            transport = await self._transport(name)
+                            dev = A5Device(transport, self.cfg) if mode == 'a5' else PaperangDevice(transport, self.cfg)
+                        await dev.connect()
+                        # Legacy handshakes must also prove a response, not just an open handle.
+                        if mode == 'legacy' or name == 'vendor':
+                            if not await dev.get_sn(): raise DeviceError('未收到有效设备身份响应')
+                        self.device = dev
+                        self.state = 'ready'; self.last_error = None
+                        self.last_seen = time.monotonic()
+                        try: await dev.keepalive_setup()
+                        except Exception as e:
+                            log.warning('保活设置未确认: %s', e)
+                            self.last_error = str(e)
+                            if not dev.transport.is_open:
+                                raise DeviceError('保活初始化期间失联') from e
+                        self._keepalive_task = asyncio.create_task(self._keepalive_loop()) if self.cfg.keepalive else None
+                        return
                     except Exception as e:
-                        log.warning('保活设置未确认: %s', e)
-                        self.last_error = str(e)
-                        if not dev.transport.is_open:
-                            raise DeviceError('保活初始化期间失联') from e
-                    self._keepalive_task = asyncio.create_task(self._keepalive_loop()) if self.cfg.keepalive else None
-                    return
-                except Exception as e:
-                    errors.append(f'{name}/{mode}: {e}')
-                    if dev: await dev.close()
-                    self.device = None
+                        errors.append(f'{name}/{mode}: {e}')
+                        if dev: await dev.close()
+                        self.device = None
+                        if name == 'spp' and attempt == 0 and not poked:
+                            poked = True
+                            if await self._ble_poke():
+                                log.info('BLE 敲门完成，重试经典蓝牙连接')
+                                continue
+                        break
         self.state = 'fault'; self.last_error = '; '.join(errors)
         raise DeviceError(f'连接失败，请开机/唤醒: {self.last_error}')
+
+    async def _ble_poke(self):
+        """扫描并用 GATT 短连唤醒 P1：设备接受连接后约 30ms 主动断开，
+        随后经典蓝牙恢复响应。任何异常都只当敲门失败处理。"""
+        try:
+            from .transport_ble import BleTransport, scan_paperang
+            devices = await scan_paperang(4, self.cfg.ble_name_prefixes)
+            if not devices:
+                return False
+            poke = BleTransport(devices[0]['address'])
+            try:
+                await asyncio.wait_for(poke.open(), timeout=5)
+            except Exception:
+                pass  # 被设备立刻断开正是预期的敲门效果
+            finally:
+                try:
+                    await poke.close()
+                except Exception:
+                    pass
+            log.info('BLE 敲门: %s', devices[0]['address'])
+            return True
+        except Exception as e:
+            log.debug('BLE 敲门未生效: %s', e)
+            return False
 
     async def disconnect(self):
         if self._keepalive_task and self._keepalive_task is not asyncio.current_task():
