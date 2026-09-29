@@ -74,7 +74,7 @@ class PdfService {
   /// 保存 PNG 到系统下载目录，返回 content Uri（失败抛异常）。
   static Future<String> saveToDownloads(Uint8List png, String name) async {
     try {
-      final uri = await _intent.invokeMethod<String>('saveImageToDownloads', {
+      final uri = await _pdf.invokeMethod<String>('saveImageToDownloads', {
         'data': png,
         'name': name,
       });
