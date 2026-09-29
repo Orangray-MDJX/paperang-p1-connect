@@ -23,6 +23,7 @@ class LanServer {
     required this.jobs,
     required this.longImage,
     this.jobUriHost,
+    this.pdfRenderer,
   });
 
   final AppConfig cfg;
@@ -30,6 +31,7 @@ class LanServer {
   final JobQueue jobs;
   final LongImageService longImage;
   final String? jobUriHost;
+  final PdfPrintRenderer? pdfRenderer;
 
   HttpServer? _server;
 
@@ -108,10 +110,11 @@ class LanServer {
 
   Future<shelf.Response> _ipp(shelf.Request req) async {
     final body = await _readBody(req, 40 * 1024 * 1024);
-    final out = await IppService(cfg, mgr, jobs).handle(
-      body,
-      jobUriBase: 'ipp://${jobUriHost ?? '127.0.0.1'}:${cfg.ippPort}',
-    );
+    final out = await IppService(cfg, mgr, jobs, pdfRenderer: pdfRenderer)
+        .handle(
+          body,
+          jobUriBase: 'ipp://${jobUriHost ?? '127.0.0.1'}:${cfg.ippPort}',
+        );
     return shelf.Response.ok(out, headers: {'Content-Type': 'application/ipp'});
   }
 

@@ -13,6 +13,8 @@ import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 
 import 'dart:io';
 
+import 'package:image/image.dart' as img;
+
 class _Manager implements QueueManager, DeviceStatusProvider {
   _Manager(this.statusValue);
 
@@ -157,6 +159,48 @@ void main() {
       doc: Uint8List.fromList([1, 2]),
     );
     expect(badFormat.operation, 0x40a);
+    await jobs.stop();
+  });
+
+  test('注入 PDF 渲染器后 application/pdf 受理并建任务', () async {
+    final dir = await Directory.systemTemp.createTemp('ippdf');
+    final mgr = _Manager({'connected': false});
+    final jobs = await JobQueue.open(
+      mgr,
+      dbPath: '${dir.path}${Platform.pathSeparator}p.db',
+      factory: databaseFactoryFfi,
+    );
+    final tinyPng = Uint8List.fromList(
+      img.encodePng(img.Image(width: 2, height: 2)),
+    );
+    final svc = IppService(
+      AppConfig(),
+      mgr,
+      jobs,
+      pdfRenderer: (pdf) async => [tinyPng],
+    );
+    expect(svc.supportedFormats.contains('application/pdf'), isTrue);
+
+    // 无注入的实例仍拒绝 PDF（0x040a）
+    final bare = IppService(AppConfig(), mgr, jobs);
+    expect(bare.supportedFormats.contains('application/pdf'), isFalse);
+
+    final out = BytesBuilder();
+    final head = Uint8List(8);
+    head[0] = 2;
+    ByteData.sublistView(head).setUint16(2, 2, Endian.big);
+    ByteData.sublistView(head).setUint32(4, 123, Endian.big);
+    out.add(head);
+    out.add(Uint8List.fromList([0x01]));
+    out.add(IppCodec.attribute('attributes-charset', 0x47, 'utf-8'));
+    out.add(IppCodec.attribute('attributes-natural-language', 0x48, 'en'));
+    out.add(IppCodec.attribute('document-format', 0x49, 'application/pdf'));
+    out.add(Uint8List.fromList([0x03]));
+    out.add(Uint8List.fromList([0x25, 0x50, 0x44, 0x46])); // %PDF
+    final resp = await svc.handle(out.toBytes());
+    expect(IppCodec.parse(resp).operation, 0);
+    final list = await jobs.list(limit: 1);
+    expect(list.first.pageCount, 1);
     await jobs.stop();
   });
 

@@ -266,17 +266,22 @@ MonochromeBitmap trimTrailingBlank(MonochromeBitmap page) {
   );
 }
 
+/// PDF 渲染器由 App 层注入（core 保持平台无关）；null 表示本实例不支持 PDF。
+typedef PdfPrintRenderer = Future<List<Uint8List>> Function(Uint8List pdf);
+
 class IppService {
-  IppService(this.cfg, this.mgr, this.jobs);
+  IppService(this.cfg, this.mgr, this.jobs, {this.pdfRenderer});
 
   final AppConfig cfg;
   final DeviceStatusProvider mgr;
   final JobQueue jobs;
+  final PdfPrintRenderer? pdfRenderer;
 
-  static const supportedFormats = [
-    'image/pwg-raster',
-    'image/urf',
-    'image/jpeg',
+  static const rasterFormats = ['image/pwg-raster', 'image/urf', 'image/jpeg'];
+
+  List<String> get supportedFormats => [
+    ...rasterFormats,
+    if (pdfRenderer != null) 'application/pdf',
   ];
 
   Future<Uint8List> handle(Uint8List body, {String? jobUriBase}) async {
@@ -475,6 +480,13 @@ class IppService {
     Uint8List document,
     String format,
   ) async {
+    if (format == 'application/pdf') {
+      if (pdfRenderer == null) {
+        throw const IppError(0x040a, 'document-format-error');
+      }
+      // PDF 页已是 PNG（App 层按 384 点渲染），原样交给队列。
+      return pdfRenderer!(document);
+    }
     List<MonochromeBitmap> pages;
     if (format == 'image/pwg-raster') {
       pages = pwgDecode(document);

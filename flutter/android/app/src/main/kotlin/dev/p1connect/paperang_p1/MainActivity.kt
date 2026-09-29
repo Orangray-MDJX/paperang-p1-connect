@@ -23,6 +23,7 @@ class MainActivity : FlutterActivity() {
     private var bluetooth: BluetoothBridge? = null
     private var usb: UsbBridge? = null
     private var mdns: MdnsBridge? = null
+    private var pdf: PdfBridge? = null
     private var pendingShare: String? = null
     private var pickResult: MethodChannel.Result? = null
     private var requestPermissionLauncher: MethodChannel.Result? = null
@@ -64,6 +65,7 @@ class MainActivity : FlutterActivity() {
         bluetooth = BluetoothBridge(this, messenger)
         usb = UsbBridge(this, messenger)
         mdns = MdnsBridge(this, messenger)
+        pdf = PdfBridge(this, messenger)
 
         MethodChannel(messenger, "p1/service").setMethodCallHandler { call, result ->
             when (call.method) {
@@ -93,6 +95,17 @@ class MainActivity : FlutterActivity() {
                     getSharedPreferences("p1", Context.MODE_PRIVATE)
                         .edit().putBoolean("boot_start", enabled).apply()
                     result.success(null)
+                }
+                "pickPdf" -> {
+                    pickResult = result
+                    val pick = Intent(Intent.ACTION_GET_CONTENT).apply {
+                        addCategory(Intent.CATEGORY_OPENABLE)
+                        type = "application/pdf"
+                    }
+                    @Suppress("DEPRECATION")
+                    startActivityForResult(
+                        Intent.createChooser(pick, "选择 PDF"), PICK_REQUEST,
+                    )
                 }
                 "pickImage" -> {
                     pickResult = result
@@ -162,6 +175,7 @@ class MainActivity : FlutterActivity() {
         bluetooth?.close()
         usb?.close()
         mdns?.unregister()
+        pdf?.close()
         super.onDestroy()
     }
 }

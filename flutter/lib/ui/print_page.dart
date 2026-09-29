@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import '../services/app_controller.dart';
 import '../services/intent_bridge.dart';
 import 'controller_scope.dart';
+import 'pdf_print_tab.dart';
 
 class PrintPage extends StatefulWidget {
   const PrintPage({super.key});
@@ -207,6 +208,7 @@ class _PrintPageState extends State<PrintPage> {
                 ),
               ],
             ),
+            const PdfPrintTab(),
           ],
         ),
       ),

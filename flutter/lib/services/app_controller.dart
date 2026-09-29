@@ -16,6 +16,7 @@ import '../net/lan_server.dart';
 import '../platform/android_transports.dart';
 import '../platform/mdns_bridge.dart';
 import '../platform/service_bridge.dart';
+import 'pdf_service.dart';
 import 'text_image.dart';
 
 class AppController extends ChangeNotifier {
@@ -161,6 +162,17 @@ class AppController extends ChangeNotifier {
     );
   }
 
+  Future<int> submitPdfPages(
+    List<Uint8List> pages,
+    String title, {
+    int? density,
+    int from = 1,
+  }) async {
+    return queue.submit(
+      PrintJob(title: title, pages: pages, density: density, source: 'pdf'),
+    );
+  }
+
   Future<void> cancel(int jobId) async {
     await queue.cancel(jobId);
     await refresh();
@@ -210,7 +222,13 @@ class AppController extends ChangeNotifier {
   Future<void> _syncLanServer() async {
     if (cfg.lanEnabled && cfg.lanAddress.isNotEmpty) {
       if (_lan?.isRunning != true) {
-        _lan = LanServer(cfg: cfg, mgr: mgr, jobs: queue, longImage: longImage);
+        _lan = LanServer(
+          cfg: cfg,
+          mgr: mgr,
+          jobs: queue,
+          longImage: longImage,
+          pdfRenderer: PdfService.renderForPrint,
+        );
         await _lan!.start();
       }
       final uuid = await MdnsBridge.uuid() ?? 'p1';
