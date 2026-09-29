@@ -68,6 +68,62 @@ class RfcommTransport extends Transport {
   }
 }
 
+/// BLE GATT 传输（FF00 profile，直译桌面 transport_ble.py；Kotlin 侧
+/// BleBridge 负责服务/特征探测与 MTU，此处只做通道封装）。
+class BleTransport extends Transport {
+  BleTransport(this.address) {
+    // A5 位图块按 10 行 ×48B 分片，超过会触发 ATT MTU 限制。
+    maxPayload = 480;
+  }
+
+  final String address;
+
+  static const _method = MethodChannel('p1/ble');
+  static const _events = EventChannel('p1/ble/events');
+  StreamSubscription? _sub;
+
+  @override
+  String get name => 'ble';
+
+  @override
+  bool isOpen = false;
+
+  @override
+  Future<void> open() async {
+    _sub ??= _events.receiveBroadcastStream().listen(_onEvent, onError: (_) {});
+    await _method.invokeMethod('connect', {'address': address});
+    isOpen = true;
+    lastError = null;
+  }
+
+  void _onEvent(dynamic event) {
+    if (event is! Map) return;
+    if (event['type'] == 'data') {
+      onBytes?.call(event['data'] as Uint8List);
+    } else if (event['type'] == 'disconnected') {
+      lastError = event['reason'] as String?;
+      isOpen = false;
+      onDisconnected?.call();
+    }
+  }
+
+  @override
+  Future<void> write(Uint8List data) =>
+      _method.invokeMethod('write', {'data': data});
+
+  @override
+  Future<void> close() async {
+    isOpen = false;
+    await _sub?.cancel();
+    _sub = null;
+    try {
+      await _method.invokeMethod('close');
+    } on PlatformException {
+      // 通道可能在服务侧已关闭
+    }
+  }
+}
+
 class UsbBulkTransport extends Transport {
   UsbBulkTransport({required this.vid, required this.pid}) {
     maxPayload = 1024;

@@ -41,7 +41,7 @@ class DeviceManager implements QueueManager, DeviceStatusProvider {
 
   List<String> get _prefs {
     if (simulated) return ['simulated'];
-    if (cfg.transportPref == 'auto') return ['usb', 'spp'];
+    if (cfg.transportPref == 'auto') return ['usb', 'spp', 'ble'];
     return [cfg.transportPref];
   }
 

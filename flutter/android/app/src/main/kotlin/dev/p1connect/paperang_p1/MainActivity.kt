@@ -22,6 +22,7 @@ class MainActivity : FlutterActivity() {
 
     private var bluetooth: BluetoothBridge? = null
     private var usb: UsbBridge? = null
+    private var ble: BleBridge? = null
     private var mdns: MdnsBridge? = null
     private var pdf: PdfBridge? = null
     private var pendingShare: String? = null
@@ -64,6 +65,7 @@ class MainActivity : FlutterActivity() {
         val messenger = flutterEngine.dartExecutor.binaryMessenger
         bluetooth = BluetoothBridge(this, messenger)
         usb = UsbBridge(this, messenger)
+        ble = BleBridge(this, messenger)
         mdns = MdnsBridge(this, messenger)
         pdf = PdfBridge(this, messenger)
 
@@ -174,6 +176,7 @@ class MainActivity : FlutterActivity() {
     override fun onDestroy() {
         bluetooth?.close()
         usb?.close()
+        ble?.close()
         mdns?.unregister()
         pdf?.close()
         super.onDestroy()

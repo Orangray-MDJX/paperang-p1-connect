@@ -44,18 +44,34 @@ class HomePage extends StatefulWidget {
   State<HomePage> createState() => _HomePageState();
 }
 
-class _HomePageState extends State<HomePage> {
+class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
   int _index = 0;
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     // API 33+ 通知运行时权限：前台服务状态通知需要它
     SchedulerBinding.instance.addPostFrameCallback((_) {
       Future<void>.delayed(const Duration(seconds: 3)).then((_) {
         if (mounted) _askNotifications();
       });
     });
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    // 权限弹窗会挂起连接流程（首启 auto 常见）：用户授权返回后自动重试一次。
+    if (state != AppLifecycleState.resumed) return;
+    final c = ControllerScope.of(context);
+    if (c.status['connected'] == true || !c.canAutoRetryConnect) return;
+    c.retryConnectQuietly();
   }
 
   Future<void> _askNotifications() async {

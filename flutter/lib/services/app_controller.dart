@@ -39,7 +39,12 @@ class AppController extends ChangeNotifier {
   String get dbPath => '$dataDir${Platform.pathSeparator}jobs.sqlite3';
 
   Future<void> start() async {
-    cfg = AppConfig.load(File(configPath));
+    final configFile = File(configPath);
+    cfg = AppConfig.load(configFile);
+    if (!configFile.existsSync() && cfg.transportPref == 'usb') {
+      // 移动端首启默认自动（USB 优先，回落蓝牙）；桌面默认值保持 'usb'。
+      cfg.transportPref = 'auto';
+    }
     debugPrint(
       'P1DBG cfg loaded pref=${cfg.transportPref} lan=${cfg.lanEnabled}',
     );
@@ -66,6 +71,7 @@ class AppController extends ChangeNotifier {
       await connect();
     } catch (e) {
       launchError = '$e';
+      canAutoRetryConnect = true;
       notifyListeners();
     }
   }
@@ -126,13 +132,55 @@ class AppController extends ChangeNotifier {
         final addr = cfg.sppAddress;
         if (addr == null || addr.isEmpty) return null;
         return RfcommTransport(addr);
+      case 'ble':
+        final addr = cfg.bleAddress ?? cfg.sppAddress;
+        if (addr == null || addr.isEmpty) return null;
+        return BleTransport(addr);
       case 'simulated':
         return SimulatedPrinter(name: 'simulated');
     }
     return null;
   }
 
+  /// sppAddress 未配置时按名字前缀自动选择已配对设备；仅改内存，随下次保存落盘。
+  Future<void> _ensureSppAddress() async {
+    if ((cfg.sppAddress ?? '').isNotEmpty) return;
+    try {
+      final bonded = await RfcommTransport.listBonded();
+      debugPrint('listBonded -> ${bonded.length} devices: '
+          '${bonded.map((d) => d['name']).join(',')}');
+      for (final d in bonded) {
+        final name = d['name'] as String? ?? '';
+        final hit = cfg.bleNamePrefixes.any(
+          (p) => name.toLowerCase().startsWith(p.toLowerCase()),
+        );
+        if (hit) {
+          cfg.sppAddress = d['address'] as String?;
+          cfg.bleAddress = d['address'] as String?;
+          debugPrint('auto-resolved ble/spp device: $name ${cfg.sppAddress}');
+          return;
+        }
+      }
+    } catch (e) {
+      debugPrint('listBonded failed: $e');
+    }
+  }
+
+  /// 首启自动连接失败后允许一次静默重试（权限弹窗挂起流程的补救）。
+  bool canAutoRetryConnect = false;
+
+  Future<void> retryConnectQuietly() async {
+    if (!canAutoRetryConnect) return;
+    canAutoRetryConnect = false;
+    try {
+      await connect();
+    } catch (_) {
+      // 仍失败则保持当前错误展示，不弹新提示
+    }
+  }
+
   Future<void> connect() async {
+    await _ensureSppAddress();
     await mgr.ensureConnected();
     mgr.startKeepalive();
     await refresh();
