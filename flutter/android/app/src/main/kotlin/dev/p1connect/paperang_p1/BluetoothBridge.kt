@@ -64,6 +64,7 @@ class BluetoothBridge(private val context: Context, messenger: BinaryMessenger) 
                                 s.outputStream.flush()
                                 result.success(null)
                             } catch (e: IOException) {
+                                Log.e(TAG, "write failed: ${e.message}")
                                 onDisconnected(generation.get(), "蓝牙写入失败: ${e.message}")
                                 result.error("io", "${e.message}", null)
                             }
@@ -110,24 +111,51 @@ class BluetoothBridge(private val context: Context, messenger: BinaryMessenger) 
             return
         }
         val gen = generation.incrementAndGet()
-        val s = device.createRfcommSocketToServiceRecord(SPP_UUID)
         Thread {
+            var s: BluetoothSocket? = null
             try {
                 adapter.cancelDiscovery()
-                s.connect()
+                // P1 的链路密钥是未认证组合密钥（Just Works），secure socket
+                // 触发的链路加密会被拒（read ret: -1）；SPP 走 insecure 通道。
+                val primary = device.createInsecureRfcommSocketToServiceRecord(SPP_UUID)
+                try {
+                    primary.connect()
+                    s = primary
+                } catch (e: IOException) {
+                    // 部分 SDP 实现解析不了该设备的服务记录；P1 的 SPP 固定在
+                    // 通道 1（桌面端实机验证），直连通道绕过 SDP。
+                    Log.w(TAG, "SDP connect failed, trying channel 1: ${e.message}")
+                    try { primary.close() } catch (_: IOException) {}
+                    val method = device.javaClass.getMethod(
+                        "createInsecureRfcommSocket", Int::class.javaPrimitiveType,
+                    )
+                    val fallback = method.invoke(device, 1) as BluetoothSocket
+                    fallback.connect()
+                    s = fallback
+                }
                 socket = s
-                readLoop(s, gen)
+                Log.i(TAG, "connected gen=$gen")
+                // 连接一旦建立立即应答；readLoop 在本线程继续，直到断开。
+                // （此前 success 排在 readLoop 之后：连接期间调用方一直挂起，
+                // 断开瞬间才"成功"，造成幽灵连接。）
                 mainHandler.post { result.success(null) }
+                readLoop(s!!, gen)
             } catch (e: IOException) {
-                try { s.close() } catch (_: IOException) {}
+                try { s?.close() } catch (_: IOException) {}
                 val msg = "蓝牙连接失败: ${e.message}"
+                Log.e(TAG, "connect failed gen=$gen: $msg")
                 onDisconnected(gen, msg)
                 mainHandler.post { result.error("connect_failed", msg, null) }
             } catch (e: SecurityException) {
-                try { s.close() } catch (_: IOException) {}
+                try { s?.close() } catch (_: IOException) {}
+                Log.e(TAG, "connect denied gen=$gen: ${e.message}")
                 mainHandler.post {
                     result.error("permission", "缺少蓝牙权限（BLUETOOTH_CONNECT）", null)
                 }
+            } catch (e: Exception) {
+                try { s?.close() } catch (_: Exception) {}
+                Log.e(TAG, "connect error gen=$gen: ${e.message}")
+                mainHandler.post { result.error("error", "${e.message}", null) }
             }
         }.also { readThread = it }.start()
     }

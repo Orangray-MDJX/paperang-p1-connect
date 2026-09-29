@@ -28,6 +28,10 @@ class PdfBridge(private val context: Context, messenger: BinaryMessenger) {
     private var fd: ParcelFileDescriptor? = null
     private var file: File? = null
 
+    private companion object {
+        const val TAG = "P1Pdf"
+    }
+
     init {
         channel.setMethodCallHandler { call, result ->
             try {
@@ -90,8 +94,10 @@ class PdfBridge(private val context: Context, messenger: BinaryMessenger) {
                     else -> result.notImplemented()
                 }
             } catch (e: SecurityException) {
+                android.util.Log.e(TAG, "${call.method} security: ${e.message}")
                 result.error("security", "${e.message}", null)
             } catch (e: Exception) {
+                android.util.Log.e(TAG, "${call.method} failed: ${e.message}")
                 result.error("error", "${e.message}", null)
             }
         }
@@ -150,6 +156,7 @@ class PdfBridge(private val context: Context, messenger: BinaryMessenger) {
                 null, null,
             )
         }
+        android.util.Log.i(TAG, "saved $safeName -> $uri")
         return uri.toString()
     }
 
