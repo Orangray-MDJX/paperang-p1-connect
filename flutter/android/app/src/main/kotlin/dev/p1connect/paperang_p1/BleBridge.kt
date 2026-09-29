@@ -44,6 +44,7 @@ class BleBridge(private val context: Context, messenger: BinaryMessenger) {
             "0000ff03-0000-1000-8000-00805f9b34fb",
             "49535343-1e4d-4bd9-ba61-23c647249616",
         )
+        private val NAME_PREFIXES = listOf("paperang", "miaomiaoji")
         private val CCC_DESCRIPTOR: UUID =
             UUID.fromString("00002902-0000-1000-8000-00805f9b34fb")
         private const val CONNECT_TIMEOUT_S = 15L
@@ -118,12 +119,55 @@ class BleBridge(private val context: Context, messenger: BinaryMessenger) {
             return
         }
         close()
-        val device: BluetoothDevice = try {
-            adapter.getRemoteDevice(address)
-        } catch (e: IllegalArgumentException) {
-            mainHandler.post { result.error("bad_address", "无效的蓝牙地址", null) }
-            return
+        // P1 的 LE 地址可能与经典地址不同且不总在广播：先扫描（按名字/服务
+        // UUID 匹配）拿真实 LE 设备，扫不到再按传入地址直连。
+        Thread { scanThenConnect(adapter, address, result) }.start()
+    }
+
+    private fun scanThenConnect(
+        adapter: BluetoothAdapter, address: String, result: MethodChannel.Result,
+    ) {
+        val found = CountDownLatch(1)
+        val target = java.util.concurrent.atomic.AtomicReference<BluetoothDevice?>(null)
+        var scanner: android.bluetooth.le.BluetoothLeScanner? = null
+        try {
+            scanner = adapter.bluetoothLeScanner
+        } catch (_: SecurityException) {
         }
+        if (scanner != null) {
+            val callback = object : android.bluetooth.le.ScanCallback() {
+                override fun onScanResult(callbackType: Int, r: android.bluetooth.le.ScanResult) {
+                    val dev = r.device ?: return
+                    val name = try { dev.name } catch (_: SecurityException) { null }
+                    val svc = r.scanRecord?.serviceUuids ?: listOf<android.os.ParcelUuid>()
+                    val svcBlob = svc.joinToString(" ") { it.uuid.toString().lowercase() }
+                    val hit = (name != null && NAME_PREFIXES.any { name.lowercase().startsWith(it) }) ||
+                        ("ff00" in svcBlob || "49535343" in svcBlob)
+                    if (hit) {
+                        target.set(dev)
+                        Log.i(TAG, "scan hit ${dev.address} name=$name")
+                        found.countDown()
+                    }
+                }
+            }
+            try {
+                scanner.startScan(callback)
+                found.await(10, TimeUnit.SECONDS)
+            } catch (e: SecurityException) {
+                Log.w(TAG, "scan needs permission: ${e.message}")
+            } finally {
+                try { scanner.stopScan(callback) } catch (_: Exception) {}
+            }
+        }
+        val scanned = target.get()
+        val device = scanned ?: adapter.getRemoteDevice(address)
+        if (scanned == null) {
+            Log.w(TAG, "scan miss, falling back to $address")
+        }
+        gattConnect(device, result)
+    }
+
+    private fun gattConnect(device: BluetoothDevice, result: MethodChannel.Result) {
         val connected = CountDownLatch(1)
         val servicesDone = CountDownLatch(1)
         val failure = java.util.concurrent.atomic.AtomicReference<String?>(null)

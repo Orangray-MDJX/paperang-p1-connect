@@ -133,8 +133,9 @@ class AppController extends ChangeNotifier {
         if (addr == null || addr.isEmpty) return null;
         return RfcommTransport(addr);
       case 'ble':
-        final addr = cfg.bleAddress ?? cfg.sppAddress;
-        if (addr == null || addr.isEmpty) return null;
+        // 广播扫描优先于地址（P1 的 LE 地址可不同于经典地址且未必配对），
+        // 地址仅作为扫描未命中时的回退目标。
+        final addr = cfg.bleAddress ?? cfg.sppAddress ?? '';
         return BleTransport(addr);
       case 'simulated':
         return SimulatedPrinter(name: 'simulated');
