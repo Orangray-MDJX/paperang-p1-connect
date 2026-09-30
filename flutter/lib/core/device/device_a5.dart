@@ -149,7 +149,11 @@ class A5Device implements PrinterDevice {
       final fut = _pending = Completer<A5Frame>();
       _pendingCmd = cmd;
       try {
-        await transport.write(a5Build(cmd, content));
+        // 写入与等待都要限时：RFCOMM 缓冲淤积时 write 可能长期不归，
+        // 不设界会让任务停在"打印中"且无法取消（真机 2026-09-30 复现）。
+        await transport
+            .write(a5Build(cmd, content))
+            .timeout(const Duration(seconds: 10));
         return await fut.future.timeout(timeout);
       } catch (e) {
         // 超时/断连都会毒化会话：迟到响应不能当作新请求的应答。

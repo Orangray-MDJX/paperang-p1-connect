@@ -1,5 +1,4 @@
-import 'dart:typed_data';
-
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 import '../services/app_controller.dart';
@@ -58,6 +57,7 @@ class _PdfPrintTabState extends State<PdfPrintTab> {
     if (_cache.containsKey(i)) return _cache[i]!;
     final png = await PdfService.renderPage(i, width: 768);
     _cache[i] = png;
+
     return png;
   }
 
@@ -187,18 +187,22 @@ class _PdfPrintTabState extends State<PdfPrintTab> {
                   ),
                 ],
               ),
+              SizedBox(
+                width: double.infinity,
+                child: FilledButton.icon(
+                  style: FilledButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                  ),
+                  onPressed: _busy ? null : () => _submit(c, currentOnly: true),
+                  icon: const Icon(Icons.print),
+                  label: const Text('打印本页'),
+                ),
+              ),
               OverflowBar(
                 alignment: MainAxisAlignment.center,
                 spacing: 8,
                 children: [
                   OutlinedButton.icon(
-                    onPressed: _busy
-                        ? null
-                        : () => _submit(c, currentOnly: true),
-                    icon: const Icon(Icons.filter_1),
-                    label: const Text('打印本页'),
-                  ),
-                  FilledButton.icon(
                     onPressed: _busy
                         ? null
                         : () => _submit(c, currentOnly: false),

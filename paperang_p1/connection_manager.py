@@ -19,7 +19,19 @@ class DeviceManager:
         self._keepalive_task = None
         self.last_seen = None
 
-    async def ensure_connected(self, pref=None):
+    def pause(self, seconds: float = 300.0):
+        """按请求暂停自动重连（如让位给手机临时打印）；
+        打印任务或手动 connect 不受影响，到期自动恢复。"""
+        self._paused_until = time.monotonic() + seconds
+        log.info('自动重连暂停 %s 秒', int(seconds))
+
+    @property
+    def connection_paused(self):
+        return time.monotonic() < getattr(self, '_paused_until', 0.0)
+
+    async def ensure_connected(self, pref=None, background: bool = False):
+        if background and self.connection_paused:
+            return None
         async with self._lock:
             if (not pref or pref == 'auto' or (self.device and self.device.transport.name == pref)) and self.device and self.device.transport.is_open and getattr(self.device, 'state', 'ready') == 'ready':
                 return self.device

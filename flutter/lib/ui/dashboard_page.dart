@@ -55,6 +55,17 @@ class DashboardPage extends StatelessWidget {
                       if (s['version'] != null) Text('固件：${s['version']}'),
                       if (s['powerDownTime'] != null)
                         Text('自动关机：${s['powerDownTime']} 秒'),
+                      if (c.connectHint.isNotEmpty)
+                        Padding(
+                          padding: const EdgeInsets.only(top: 8),
+                          child: Text(
+                            c.connectHint,
+                            style: TextStyle(
+                              color: Theme.of(context).colorScheme.error,
+                              fontSize: 13,
+                            ),
+                          ),
+                        ),
                       if (error != null && !connected)
                         Padding(
                           padding: const EdgeInsets.only(top: 8),

@@ -95,6 +95,20 @@ class AppController extends ChangeNotifier {
     } catch (_) {}
   }
 
+  /// 连接失败时的人话提示：P1 经典蓝牙单主机，电脑服务占线时手机必被拒；
+  /// 深睡设备则需电源键唤醒。
+  String get connectHint {
+    final err = (status['lastError'] as String?) ?? '';
+    if (status['connected'] == true || err.isEmpty) return '';
+    if (err.contains('read failed') ||
+        err.contains('超时') ||
+        err.toLowerCase().contains('timeout')) {
+      return '打印机可能正被电脑占用（同一台打印机同时只允许一个蓝牙主机），'
+          '或已深度休眠——按打印机电源键唤醒后重试。';
+    }
+    return '';
+  }
+
   /// 状态机的界面文案（对齐桌面版托盘/管理页）。
   String get stateLabel {
     if (simulated && status['connected'] != true) return '演示模式（模拟打印机）';

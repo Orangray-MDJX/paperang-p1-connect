@@ -128,7 +128,10 @@ def create_app(cfg: Config, mgr, jobs: JobQueue) -> FastAPI:
     async def disconnect():
         async with mgr.operation_lock:
             await mgr.disconnect()
-        return {"ok": True}
+        # 让位给手机等临时主机：断开后暂停自动重连 5 分钟，
+        # 打印任务或显式 connect 立即恢复。
+        mgr.pause(300)
+        return {"ok": True, "auto_reconnect_paused_s": 300}
 
     @app.post('/api/power-off')
     async def power_off(req: PowerOffReq):

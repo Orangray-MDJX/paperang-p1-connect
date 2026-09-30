@@ -78,7 +78,7 @@ class Runtime:
         while True:
             try:
                 async with self.mgr.operation_lock:
-                    await self.mgr.ensure_connected()
+                    await self.mgr.ensure_connected(background=True)
             except Exception as e:
                 logging.getLogger(__name__).warning('设备等待唤醒: %s', e)
             await asyncio.sleep(30)
