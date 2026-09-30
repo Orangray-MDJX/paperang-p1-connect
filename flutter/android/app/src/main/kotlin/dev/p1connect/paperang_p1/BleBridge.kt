@@ -160,9 +160,25 @@ class BleBridge(private val context: Context, messenger: BinaryMessenger) {
             }
         }
         val scanned = target.get()
-        val device = scanned ?: adapter.getRemoteDevice(address)
         if (scanned == null) {
+            if (address.isBlank()) {
+                // 空地址（未解析到已配对设备）且扫描无果：直接失败，
+                // 不得把空串交给 getRemoteDevice——那会抛
+                // IllegalArgumentException 直接杀死进程（真机复现）。
+                Log.w(TAG, "scan miss and no fallback address")
+                mainHandler.post {
+                    result.error("no_device", "BLE 扫描未发现打印机，且未配置地址", null)
+                }
+                return
+            }
             Log.w(TAG, "scan miss, falling back to $address")
+        }
+        val device = scanned ?: try {
+            adapter.getRemoteDevice(address)
+        } catch (e: IllegalArgumentException) {
+            Log.e(TAG, "bad address: $address")
+            mainHandler.post { result.error("bad_address", "无效的蓝牙地址", null) }
+            return
         }
         gattConnect(device, result)
     }
