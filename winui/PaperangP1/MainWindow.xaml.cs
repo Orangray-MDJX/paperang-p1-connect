@@ -108,8 +108,10 @@ public sealed partial class MainWindow : Window
         var transport = Value(status["transport"], "未连接");
         ConnectionText.Text = connected ? $"{transport.ToUpperInvariant()} · {Value(status["protocol"], "设备已连接")}" :
             Value(status["last_error"], "检查设备电源、USB 或蓝牙连接。");
-        var battery = Int(status["battery"], -1);
-        BatteryText.Text = battery < 0 ? "未知" : $"{battery}%";
+        // 服务返回的电量是 0.1% 步进的浮点（如 54.3），整数解析会失败成"未知"。
+        var battery = Double(status["battery"], -1);
+        BatteryText.Text = battery < 0 ? "未知" : $"{battery:0}%";
+        if (battery >= 0 && battery < 20) BatteryText.Text += "（低）";
         BatteryBar.Value = Math.Clamp(battery, 0, 100);
         PendingText.Text = Value(status["queue"]?["pending"], "0");
     }

@@ -92,7 +92,8 @@ def run():
         return ({'usb':'USB','spp':'蓝牙','ble':'BLE'}.get(state.get('transport'),'设备')+' 已就绪') if state.get('connected') else '等待打印机'
     def battery_label(item):
         value = snapshot().get('battery')
-        return f"电量：{value}%" if value is not None else '电量：未知'
+        if value is None: return '电量：未知'
+        return f'电量：{value:.0f}%' + ('（低电量）' if value < 20 else '')
     def queue_label(item): return f"等待任务：{snapshot().get('queue',{}).get('pending',0)}"
 
     icon = pystray.Icon('PaperangP1',icon_image({}),'喵喵机 P1',pystray.Menu(

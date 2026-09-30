@@ -119,9 +119,10 @@ class AppController extends ChangeNotifier {
 
   String get batteryLabel {
     final b = status['battery'];
-    if (b == null) return '';
-    final text = b is double ? b.toStringAsFixed(0) : '$b';
-    return '电量 $text%';
+    if (b == null) return '电量未知';
+    final v = b is num ? b.toDouble() : 0;
+    final suffix = v > 0 && v < 20 ? '（低）' : '';
+    return '电量 ${v.toStringAsFixed(0)}%$suffix';
   }
 
   Transport? _createTransport(String name) {

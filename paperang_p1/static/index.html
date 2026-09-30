@@ -58,7 +58,8 @@ async function refresh() {
     const [state, jobs] = await Promise.all([api('/status'),api('/jobs')]);
     el('status').textContent = state.connected ? (state.lid_closed === false ? '请合好纸仓盖' : state.paper_present === false ? '打印机缺纸' : state.queue.printing ? '正在打印' : `${transports[state.transport]||'设备'} 已就绪`) : '等待打印机连接';
     el('detail').textContent = state.connected ? `设备已连接${state.queue.printing ? '，任务正在发送' : ''}。` : '请按实体键唤醒打印机，并检查 USB 或蓝牙连接。未发送的任务会保留。';
-    el('battery').textContent = state.connected && state.battery != null ? `${state.battery}%` : '—';
+    el('battery').textContent = state.connected && state.battery != null ? `${Math.round(state.battery)}%` : '—';
+      el('battery').style.color = state.battery != null && state.battery < 20 ? 'var(--danger,#e5484d)' : '';
     el('pending').textContent = state.queue.pending;
     el('transport').textContent = state.connected ? transports[state.transport] || '设备' : '—';
     el('status-dot').className = 'status-dot ' + (state.connected ? (state.printable === false || state.queue.printing ? 'warning' : 'ready') : '');

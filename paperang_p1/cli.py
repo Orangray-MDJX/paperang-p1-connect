@@ -66,7 +66,9 @@ async def execute(cfg, args):
         response = await client.request(method,path,json=payload) if method != 'GET' else await client.get(path)
         if response.is_error: raise ValueError(f'服务返回 {response.status_code}: {response.text}')
         result = response.json()
-        if cmd == 'battery': print(f"{result.get('battery', '未知')}%")
+        if cmd == 'battery':
+            value = result.get('battery')
+            print('未知' if value is None else f'{value:.0f}%')
         else: print(json.dumps(result,ensure_ascii=False,indent=2))
         return 0
 
