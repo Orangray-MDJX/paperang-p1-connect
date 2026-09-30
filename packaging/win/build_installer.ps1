@@ -32,7 +32,7 @@ Write-Output "== 3/3 Inno Setup"
 $iscc = "$env:LOCALAPPDATA\Programs\Inno Setup 6\ISCC.exe"
 if (-not (Test-Path $iscc)) { $iscc = "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" }
 if (-not (Test-Path $iscc)) { throw "Inno Setup not found at $iscc" }
-$version = "0.2.1"
+$version = "0.2.2"
 & $iscc "/DAppVersion=$version" "/DRepoRoot=$root" "/DOutRoot=$out" `
     (Join-Path $PSScriptRoot "paperang.iss")
 if ($LASTEXITCODE -ne 0) { throw "iscc failed" }

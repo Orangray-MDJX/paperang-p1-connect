@@ -35,6 +35,28 @@ class IntentBridge {
   static Future<void> setBootStart(bool enabled) async {
     await _channel.invokeMethod('setBootStart', {'enabled': enabled});
   }
+
+  static Future<bool> isIgnoringBatteryOptimizations() async {
+    try {
+      return await _channel.invokeMethod<bool>(
+            'isIgnoringBatteryOptimizations',
+          ) ??
+          false;
+    } on PlatformException {
+      return false;
+    }
+  }
+
+  static Future<bool> requestIgnoreBatteryOptimizations() async {
+    try {
+      return await _channel.invokeMethod<bool>(
+            'requestIgnoreBatteryOptimizations',
+          ) ??
+          false;
+    } on PlatformException {
+      return false;
+    }
+  }
 }
 
 /// 供 normalizeToPng 使用的 PNG 头嗅探（不用引入额外依赖）。

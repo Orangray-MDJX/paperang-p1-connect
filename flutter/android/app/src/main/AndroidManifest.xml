@@ -19,6 +19,8 @@
     <uses-permission android:name="android.permission.WAKE_LOCK" />
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
     <!-- USB 无需清单权限，运行时弹授权 -->
+    <!-- 常驻前台服务在国产 ROM 上需引导电池优化豁免，否则后台被冻结 -->
+    <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
 
     <application
         android:label="Paperang P1"

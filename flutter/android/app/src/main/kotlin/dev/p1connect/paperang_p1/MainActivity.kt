@@ -98,6 +98,25 @@ class MainActivity : FlutterActivity() {
                         .edit().putBoolean("boot_start", enabled).apply()
                     result.success(null)
                 }
+                "isIgnoringBatteryOptimizations" -> {
+                    val pmi = getSystemService(Context.POWER_SERVICE) as? android.os.PowerManager
+                    result.success(pmi?.isIgnoringBatteryOptimizations(packageName) == true)
+                }
+                "requestIgnoreBatteryOptimizations" -> {
+                    // 常驻前台服务在 MIUI 等国产 ROM 上会被电池优化冻结，
+                    // 表现为后台断连甚至点图标无响应；引导用户豁免。
+                    try {
+                        startActivity(
+                            android.content.Intent(
+                                android.provider.Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS,
+                                android.net.Uri.parse("package:$packageName"),
+                            ),
+                        )
+                        result.success(true)
+                    } catch (e: Exception) {
+                        result.success(false)
+                    }
+                }
                 "pickPdf" -> {
                     pickResult = result
                     val pick = Intent(Intent.ACTION_GET_CONTENT).apply {
